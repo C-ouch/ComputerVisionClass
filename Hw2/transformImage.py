@@ -5,81 +5,123 @@ import numpy as np
 color = cv2.imread("Image1.png", cv2.IMREAD_COLOR)
 I = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
 
-# Define the rotation angle
-alpha = 0.5
-
-# Define the translation vector
-tx = 50
-ty = 50
-
 
 # Define the homography matrix A
-A = np.array([[ np.cos(alpha),  -np.sin(alpha),  tx],
-     [np.sin(alpha)       ,  np.cos(alpha)      , ty],
-     [-0.        , -0.        ,  1.]])
+def homography_matrix(A, B, C, D, E, F, G, H, I):
+    M = np.array([[A, B, C], [D, E, F], [G, H, I]])
+    return M
 
 
-# Get the dimensions of the input image
-H, W = I.shape[:2]
+def transform_matrix(tx=None, ty=None, alpha=None, sx=None, sy=None, shear_factor=None):
+    if alpha is not None:
+        # Rotation matrix
+        R = np.array([[np.cos(np.deg2rad(alpha)), -np.sin(np.deg2rad(alpha)), 0],
+                      [np.sin(np.deg2rad(alpha)), np.cos(np.deg2rad(alpha)), 0],
+                      [0, 0, 1]])
+    else:
+        R = np.eye(3)
+        
+    if sx is not None or sy is not None:
+        # Scaling matrix
+        S = np.array([[sx if sx is not None else 1, 0, 0],
+                      [0, sy if sy is not None else 1, 0],
+                      [0, 0, 1]])
+    else:
+        S = np.eye(3)
+        
+    if tx is not None or ty is not None:
+        # Translation matrix
+        T = np.array([[1, 0, tx if tx is not None else 0],
+                      [0, 1, ty if ty is not None else 0],
+                      [0, 0, 1]])
+    else:
+        T = np.eye(3)
+        
+    if shear_factor is not None:
+        # Shear matrix
+        Sh = np.array([[1, shear_factor, 0],
+                       [0, 1, 0],
+                       [0, 0, 1]])
+    else:
+        Sh = np.eye(3)
+        
+    # Compose the transformation matrix
+    A = np.dot(np.dot(np.dot(T, Sh), np.dot(S, R)), np.linalg.inv(T))
+    
+    return A
 
-# Define the four corners of the input image
-c1 = np.array([1, 1, 1]).reshape(3, 1)
-c2 = np.array([W, 1, 1]).reshape(3, 1)
-c3 = np.array([1, H, 1]).reshape(3, 1)
-c4 = np.array([W, H, 1]).reshape(3, 1)
+def transformImage(I, A, transform_type):
+    # Check if the transform type is valid
+    if transform_type != ('scaling'|'translation'|'rotation'|'reflection'|'homography'|'affine'):
+        raise ValueError('The transform type is not valid')
 
-# Transform the corners using the homography matrix A
-cp1 = np.dot(A, c1)
-cp2 = np.dot(A, c2)
-cp3 = np.dot(A, c3)
-cp4 = np.dot(A, c4)
+    # Get the dimensions of the input image
+    H, W = I.shape[:2]
 
-# Extract the x and y coordinates of the transformed corners
-xp1, yp1, _ = cp1.ravel()
-xp2, yp2, _ = cp2.ravel()
-xp3, yp3, _ = cp3.ravel()
-xp4, yp4, _ = cp4.ravel()
+    # Define the four corners of the input image
+    c1 = np.array([1, 1, 1]).reshape(3, 1)
+    c2 = np.array([W, 1, 1]).reshape(3, 1)
+    c3 = np.array([1, H, 1]).reshape(3, 1)
+    c4 = np.array([W, H, 1]).reshape(3, 1)
 
-# Find the minimum and maximum x and y values of the transformed corners
-minx = min(1, xp1, xp2, xp3, xp4)
-miny = min(1, yp1, yp2, yp3, yp4)
-maxx = max(W, xp1, xp2, xp3, xp4)
-maxy = max(H, yp1, yp2, yp3, yp4)
+    # Transform the corners using the homography matrix A into correspondences
+    cp1 = np.dot(A, c1)
+    cp2 = np.dot(A, c2)
+    cp3 = np.dot(A, c3)
+    cp4 = np.dot(A, c4)
 
-# Create a grid of x and y coordinates in the output image
-Xprime, Yprime = np.meshgrid(np.arange(minx, maxx+1), np.arange(miny, maxy+1))
+    # Check if the matrix is a homography matrix
+    if transform_type == ('homography'|'affine'):
+        cp1 = cp1[:2] / cp1[2]
+        cp2 = cp2[:2] / cp2[2]
+        cp3 = cp3[:2] / cp3[2]
+        cp4 = cp4[:2] / cp4[2]
 
-# Create a matrix of homogenized coordinates in the output image
-heightIprime, widthIprime = Xprime.shape
-pprimematrix = np.vstack((Xprime.ravel(), Yprime.ravel(), np.ones(heightIprime*widthIprime)))
+    # Extract the x and y coordinates of the transformed corners
+    xp1, yp1, _ = cp1.flatten()
+    xp2, yp2, _ = cp2.flatten()
+    xp3, yp3, _ = cp3.flatten()
+    xp4, yp4, _ = cp4.flatten()
 
-# Invert the homography matrix to map points from the output image to the input image
-invA = np.linalg.inv(A)
+    # Find the minimum and maximum x and y values of the transformed corners
+    minx = min(1, xp1, xp2, xp3, xp4)
+    miny = min(1, yp1, yp2, yp3, yp4)
+    maxx = max(W, xp1, xp2, xp3, xp4)
+    maxy = max(H, yp1, yp2, yp3, yp4)
 
-print(np.abs(np.linalg.det(invA) - 1))
+    # Create a grid of x and y coordinates in the output image
+    Xprime, Yprime = np.meshgrid(np.arange(minx, maxx+1), np.arange(miny, maxy+1))
 
-# Check if the matrix is an affine transformation matrix
-if np.abs(np.linalg.det(invA) - 1) > 1e-6:
-    raise ValueError("Matrix is not a proper affine transformation matrix")
+    # Create a matrix of homogenized coordinates in the output image
+    heightIprime, widthIprime = Xprime.shape
+    pprimematrix = np.vstack((Xprime.flatten(), Yprime.flatten(), np.ones(heightIprime*widthIprime)))
 
-# Map the homogenized output image coordinates to input image coordinates using the inverted homography matrix
-phatmatrix = np.dot(invA, pprimematrix)
+    # Invert the homography matrix to map points from the output image to the input image
+    invA = np.linalg.inv(A)
 
-# Extract the x and y coordinates from the mapped homogenized input image coordinates
-xlongvector = phatmatrix[0] / phatmatrix[2]
-ylongvector = phatmatrix[1] / phatmatrix[2]
 
-# Reshape the x and y coordinates into a matrix
-xmatrix = xlongvector.reshape(heightIprime, widthIprime)
-ymatrix = ylongvector.reshape(heightIprime, widthIprime)
+    # Check if the matrix is an affine transformation matrix
+    #if np.abs(np.linalg.det(invA) - 1) > 1e-6:
+    #    raise ValueError("Matrix is not a proper affine transformation matrix")
 
-# Interpolate the input image at the mapped coordinates to create the output image
-Iprime = cv2.remap(I, xmatrix.astype(np.float32), ymatrix.astype(np.float32), cv2.INTER_LINEAR)
+    # Map the homogenized output image coordinates to input image coordinates using the inverted homography matrix
+    phatmatrix = np.dot(invA, pprimematrix)
 
-# Display the input and output images
-cv2.imwrite("Input_Image.jpg", I)
-cv2.imwrite("Output_Image.jpg", Iprime)
-print('Transformed image saved to disk.')
+    # Extract the x and y coordinates from the mapped homogenized input image coordinates
+    xlongvector = phatmatrix[0] / phatmatrix[2]
+    ylongvector = phatmatrix[1] / phatmatrix[2]
+
+    # Reshape the x and y coordinates into a matrix
+    xmatrix = xlongvector.reshape(heightIprime, widthIprime)
+    ymatrix = ylongvector.reshape(heightIprime, widthIprime)
+
+    # Interpolate the input image at the mapped coordinates to create the output image
+    Iprime = cv2.remap(I, xmatrix.astype(np.float32), ymatrix.astype(np.float32), cv2.INTER_LINEAR)
+
+    # Display the input and output images
+    cv2.imwrite("Input_Image.jpg", I)
+    cv2.imwrite("Output_Image.jpg", Iprime)
+    print('Transformed image saved to disk.')
 
 
 
