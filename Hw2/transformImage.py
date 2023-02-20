@@ -147,13 +147,14 @@ def transformImage(I, A, transform_type, output_image_name):
     else:
         raise ValueError('The transform type is not valid')
 
+
 def main():
     # Read the input image
-    color = cv2.imread("Image1.png", cv2.IMREAD_COLOR)
+    color = cv2.imread("Image3.png", cv2.IMREAD_COLOR)
 
     input_image = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
 
-# print the shape of the input image
+    # print the shape of the input image
     print(input_image.shape)
 
     # Change the size of the image to 1080 ×1920 pixels 
