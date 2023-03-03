@@ -3,6 +3,7 @@
 from transformImage import transformImage # From the previous homework
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 # HELP BLOCK to explain the code
 # There are several functions defined
@@ -22,6 +23,16 @@ def setupImages(im1, im2):
     im1 = im1.astype(np.float64)
     im2 = im2.astype(np.float64)
     return im1, im2
+
+
+# Obtainihng Correspondences using OpenCV's Fast
+
+# Initiate FAST object with default values
+fast = cv2.FastFeatureDetector_create()
+
+# find and draw the keypoints
+kp = fast.detect(img,None)
+img_points = cv2.drawKeypoints(img, kp, None, color=(255,0,0))
 
 
 
@@ -101,26 +112,75 @@ def setupImages(im1, im2):
 
 # This gives us a homography matrix
 def estimateTransform(im1_points, im2_points):
-    # create P and r
-    P = np.zeros((8, 9)) # 8x9 matrix that will be used to get q
-    r = np.zeros((8, 1)) # 8x1 matrix that will be used to get q
-    for i in range(4):
-        x1 = im1_points[i][0]
-        y1 = im1_points[i][1]
-        x2 = im2_points[i][0]
-        y2 = im2_points[i][1]
-        P[2 * i] = [0, 0, 0, -x1, -y1, -1, y2 * x1, y2 * y1, y2]
-        P[2 * i + 1] = [x1, y1, 1, 0, 0, 0, -x2 * x1, -x2 * y1, -x2]
-        r[2 * i] = y2
-        r[2 * i + 1] = x2
+    # create a design matrix P
+    P = np.zeros((8, 9))
+    # the design matrix P is a 8x9 matrix
+    # that is used to solve for the homography matrix
+    # create a vector r
+    r = np.zeros((8, 1)) # this is a 8x1 vector
+    
+    # estimate q by using homogeneous least squares, with singular value decomposition (SVD)
+    # use the direct linear transform (DLT) approach
+    # create P and r according to the direct linear transform (DLT) approach
+    
 
-    # use SVD to get q
-    U, s, V = np.linalg.svd(P)
-    q = V[-1]
 
-    # rearrange q to get A
-    A = np.array([[q[0], q[1], q[2]], [q[3], q[4], q[5]], [q[6], q[7], q[8]]])
-    return A
+def estimateTransformRANSCAC(pts1, pts2):
+    Nransac = 100000
+    th = 5
+    n = pts1.shape[1]
+    nkeepmax = 0
+
+    for ir in range(Nransac):
+        idx = np.random.choice(n, size=4, replace=False)
+        pts1s = pts1[:, idx]
+        pts2s = pts2[:, idx]
+
+        H = estimateTransform(pts1s, pts2s)
+
+        pts2estim_h = H @ np.vstack((pts1, np.ones((1, n))))
+        pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :]
+
+        d = np.sum((pts2estim.T - pts2)**2, axis=1)
+
+        keep = np.where(d < th)[0]
+        nkeep = len(keep)
+
+        if nkeep > nkeepmax:
+            nkeepmax = nkeep
+            Hkeepmax = H
+            keepmax = keep
+
+    pts1keep = pts1[:, keepmax]
+    pts2keep = pts2[:, keepmax]
+
+    Hbetter = estimateTransform(pts1keep, pts2keep)
+
+    return Hbetter
+
+def estimateTransform(pts1, pts2):
+    n = pts1.shape[1]
+    A = np.zeros((2*n, 9))
+
+    for i in range(n):
+        x = pts1[0, i]
+        y = pts1[1, i]
+        xp = pts2[0, i]
+        yp = pts2[1, i]
+
+        A[2*i, :] = [-x, -y, -1, 0, 0, 0, xp*x, xp*y, xp]
+        A[2*i+1, :] = [0, 0, 0, -x, -y, -1, yp*x, yp*y, yp]
+
+    _, _, V = np.linalg.svd(A)
+
+    H = np.reshape(V[-1, :], (3, 3))
+
+    return H / H[2, 2]
+
+
+
+
+    
 
 # 4: Applying the Homography
 # Use the function transformImage written in Assignment 1 to transform ‘im2’ to
