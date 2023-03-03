@@ -34,7 +34,22 @@ fast = cv2.FastFeatureDetector_create()
 kp = fast.detect(img,None)
 img_points = cv2.drawKeypoints(img, kp, None, color=(255,0,0))
 
+# Print all default params
+print( "Threshold: {}".format(fast.getThreshold()) )
+print( "nonmaxSuppression:{}".format(fast.getNonmaxSuppression()) )
+print( "neighborhood: {}".format(fast.getType()) )
+print( "Total Keypoints with nonmaxSuppression: {}".format(len(kp)) )
+cv.imwrite('fast_true.png', img2)
 
+# Disable nonmaxSuppression
+fast.setNonmaxSuppression(0)
+kp = fast.detect(img, None)
+
+print( "Total Keypoints without nonmaxSuppression: {}".format(len(kp)) )
+
+img3 = cv.drawKeypoints(img, kp, None, color=(255,0,0))
+
+cv.imwrite('fast_false.png', img3)
 
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
 # to ‘im2_points’, i.e., to determine the transform between ‘im1’ to ‘im2’. Your function should
@@ -138,10 +153,10 @@ def estimateTransformRANSCAC(pts1, pts2):
 
         H = estimateTransform(pts1s, pts2s)
 
-        pts2estim_h = H @ np.vstack((pts1, np.ones((1, n))))
-        pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :]
+        pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
+        pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
 
-        d = np.sum((pts2estim.T - pts2)**2, axis=1)
+        d = np.sum((pts2estim.T - pts2)**2, axis=1) # squared distance
 
         keep = np.where(d < th)[0]
         nkeep = len(keep)
