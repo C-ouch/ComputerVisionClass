@@ -1,13 +1,30 @@
 # The following code is for creating panoramas from a set of images
 # It uses opencv and numpy
-import numpy as np
+from transformImage import transformImage # From the previous homework
 import cv2
+import numpy as np
 
 # HELP BLOCK to explain the code
 # There are several functions defined
 # Function definitions:
 # 
-    
+
+# Once you have your photographs, it is time to obtain correspondences. Load both
+# your images into MATLAB. For this assignment, you can convert them to grayscale. Also make
+# sure you convert them to double using im2double.  
+def setupImages(im1, im2):
+    # load images and convert to grayscale
+    im1 = cv2.imread(im1, cv2.IMREAD_COLOR)
+    im2 = cv2.imread(im2, cv2.IMREAD_COLOR)
+    im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
+    im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+    # convert to double
+    im1 = im1.astype(np.float64)
+    im2 = im2.astype(np.float64)
+    return im1, im2
+
+
+
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
 # to ‘im2_points’, i.e., to determine the transform between ‘im1’ to ‘im2’. Your function should
 # have the form:
@@ -82,13 +99,11 @@ import cv2
 # from the one above. This is fine, as the results from RANSAC + homogeneous least squares
 # depend upon the random samples chosen.
 
-def setupImages()
-
 # This gives us a homography matrix
 def estimateTransform(im1_points, im2_points):
     # create P and r
-    P = np.zeros((8, 9))
-    r = np.zeros((8, 1))
+    P = np.zeros((8, 9)) # 8x9 matrix that will be used to get q
+    r = np.zeros((8, 1)) # 8x1 matrix that will be used to get q
     for i in range(4):
         x1 = im1_points[i][0]
         y1 = im1_points[i][1]
@@ -106,3 +121,19 @@ def estimateTransform(im1_points, im2_points):
     # rearrange q to get A
     A = np.array([[q[0], q[1], q[2]], [q[3], q[4], q[5]], [q[6], q[7], q[8]]])
     return A
+
+# 4: Applying the Homography
+# Use the function transformImage written in Assignment 1 to transform ‘im2’ to
+# match ‘im1’. Call the transformed image ‘im2_transformed’.
+# Be careful! A relates ‘im1’ to ‘im2’. To transform ‘im2’ to ‘im1’, you have to apply the in-
+# verse of A to ‘im2’!
+# For the panorama, you will find it easier to force the corners in the transformed image to
+# be at (1,1) instead of (minx,miny).
+# Also, interp2 may provide NaN (not a number) values. You can reset NaNs to zeros by calling
+# nanlocations = isnan( im2_transformed );
+# im2_transformed( nanlocations )=0;
+# For the example images, ‘im2_transformed’ will be similar the following image:
+# It is quite likely that your ‘im2_transformed’ will not appear exactly like the one shown here,
+# and will have slight differences. Again, this is fine, as your ‘im2_transformed’ depends on the
+# estimate of A calculated using your correspondences. It should not look too different from
+# the image shown here.
