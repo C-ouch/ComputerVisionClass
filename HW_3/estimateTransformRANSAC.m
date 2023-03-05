@@ -14,7 +14,6 @@ for ir = 1:Nransac
 
     H = estimateTransform(pts1s,pts2s);
 
-
     pts2estim_h = H * [pts1';ones(1,n)];
     pts2estm = pts2estim_h(1:2,:) ./ pts2estim_h(3,:);
 
