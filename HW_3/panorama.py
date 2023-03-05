@@ -13,7 +13,9 @@ import numpy as np
 
 # Once you have your photographs, it is time to obtain correspondences. Load both
 # your images into MATLAB. For this assignment, you can convert them to grayscale. Also make
-# sure you convert them to double using im2double.  
+# sure you convert them to double using im2double.
+
+# Part 1: We set up the images we have by loading them and converting them to grayscale
 def setupImages(im1, im2):
     # load images and convert to grayscale
     im1 = cv2.imread(im1, cv2.IMREAD_COLOR)
@@ -21,28 +23,34 @@ def setupImages(im1, im2):
     im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
     im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
     # convert to double
-    im1 = im1.astype(np.float64)
-    im2 = im2.astype(np.float64)
+    # im1 = im1.astype(np.float64)
+    # im2 = im2.astype(np.float64)
     return im1, im2
 
 
-# Obtainihng Correspondences using OpenCV's Fast
+# Obtaining Correspondences using OpenCV's SIFT
 def getCorrespondences(im1, im2):
-    # Initiate FAST object with default values
-    fast = cv2.FastFeatureDetector_create()
-
-    # find the keypoints
-    kp1 = fast.detect(im1,None)
-    kp2 = fast.detect(im2,None)
+    
+    # Initialize a FAST object
+    fast = cv2.FastFeatureDetector_create(threshold=50)
+    
+    # Detect keypoints in both images
+    kp1 = fast.detect(im1, None)
+    kp2 = fast.detect(im2, None)
 
     # Draw keypoints on both images
-    img1 = cv2.drawKeypoints(img1, kp1, None)
-    img2 = cv2.drawKeypoints(img2, kp2, None)
+    im1 = cv2.drawKeypoints(im1, kp1, None)
+    im2 = cv2.drawKeypoints(im2, kp2, None)
 
     # Compute descriptors for keypoints
-    orb = cv2.ORB_create()
-    kp1, desc1 = orb.compute(im1, kp1)
-    kp2, desc2 = orb.compute(im2, kp2)
+    sift = cv2.SIFT_create()
+    desc1 = sift.compute(im1, kp1)[1]
+    desc2 = sift.compute(im2, kp2)[1]
+
+    #Use FAST to detect and compute descriptors for keypoints
+    kp1, desc1 = fast.detectAndCompute(im1, None)
+    kp2, desc2 = fast.detectAndCompute(im2, None)
+
 
     # Match descriptors from both images
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -54,6 +62,18 @@ def getCorrespondences(im1, im2):
     for match in matches:
         im1_points.append(kp1[match.queryIdx].pt)
         im2_points.append(kp2[match.trainIdx].pt)
+
+    # Draw matches between images
+    img3 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None)
+
+    # Display the results
+    print( "Total Keypoints for 1: {}".format(len(kp1)) )
+    print( "Total Keypoints for 2: {}".format(len(kp2)) )
+
+    cv2.imwrite("img.jpg", im1)
+    cv2.imwrite("img2.jpg", im2)
+    cv2.imwrite("Matches.jpg", img3)
+
 
     # Convert the points objects to coordinates
     im1_points = np.array(im1_points)
@@ -70,15 +90,6 @@ def getCorrespondences(im1, im2):
     # im1_points = np.array(im1_points)
     # im2_points = np.array(im2_points)
     # return im1_points, im2_points
-
-    
-
-
-
-
-
-
-    
     
 
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
@@ -156,19 +167,9 @@ def getCorrespondences(im1, im2):
 # depend upon the random samples chosen.
 
 # This gives us a homography matrix
-def estimateTransform(im1_points, im2_points):
-    # create a design matrix P
-    P = np.zeros((8, 9))
-    # the design matrix P is a 8x9 matrix
-    # that is used to solve for the homography matrix
-    # create a vector r
-    r = np.zeros((8, 1)) # this is a 8x1 vector
+def estimateTransformTest(im1_points, im2_points):
+    pass
     
-    # estimate q by using homogeneous least squares, with singular value decomposition (SVD)
-    # use the direct linear transform (DLT) approach
-    # create P and r according to the direct linear transform (DLT) approach
-    
-
 
 def estimateTransformRANSCAC(pts1, pts2):
     Nransac = 100000
@@ -200,9 +201,12 @@ def estimateTransformRANSCAC(pts1, pts2):
     pts2keep = pts2[:, keepmax]
 
     Hbetter = estimateTransform(pts1keep, pts2keep)
+    
+    print(Hbetter)
 
     return Hbetter
 
+# This gives us a hypothesis for a homography matrix between two sets of correspondence points, it is called in RANSAC repeatedly
 def estimateTransform(pts1, pts2):
     n = pts1.shape[1]
     A = np.zeros((2*n, 9))
@@ -220,11 +224,7 @@ def estimateTransform(pts1, pts2):
 
     H = np.reshape(V[-1, :], (3, 3))
 
-    return H / H[2, 2]
-
-
-
-
+    return H / H[2, 2] # we return a normalized homography matrix, the last value is 1
     
 
 # 4: Applying the Homography
@@ -245,15 +245,15 @@ def estimateTransform(pts1, pts2):
 
 
 
-
 def main():
     im1 = 'HW_3\images\Image1.jpg'
     im2 = 'HW_3\images\Image2.jpg'
 
     image1, image2 = setupImages(im1, im2)
-    cv2.imwrite('GRAY.png', image1)
 
-    getCorrespondences(image1)
+    moo1, moo2 = getCorrespondences(image1, image2)
+
+    # Part 4: we apply the Homography
     
 
 if __name__ == '__main__':
