@@ -28,29 +28,18 @@ def setupImages(im1, im2):
     return im1, im2
 
 
-# Obtaining Correspondences using OpenCV's SIFT
+# Obtaining Correspondences using OpenCV's ORB and Brute Force Matcher
 def getCorrespondences(im1, im2):
-    
-    # Initialize a FAST object
-    fast = cv2.FastFeatureDetector_create(threshold=50)
-    
-    # Detect keypoints in both images
-    kp1 = fast.detect(im1, None)
-    kp2 = fast.detect(im2, None)
+
+    # Initiate ORB detector
+    orb = cv2.ORB_create(nfeatures=10000)
+    # find the keypoints and descriptors with ORB (https://docs.opencv.org/4.x/dc/dc3/tutorial_py_matcher.html)
+    kp1, desc1 = orb.detectAndCompute(im1,None)
+    kp2, desc2 = orb.detectAndCompute(im2,None)
 
     # Draw keypoints on both images
     im1 = cv2.drawKeypoints(im1, kp1, None)
     im2 = cv2.drawKeypoints(im2, kp2, None)
-
-    # Compute descriptors for keypoints
-    sift = cv2.SIFT_create()
-    desc1 = sift.compute(im1, kp1)[1]
-    desc2 = sift.compute(im2, kp2)[1]
-
-    #Use FAST to detect and compute descriptors for keypoints
-    kp1, desc1 = fast.detectAndCompute(im1, None)
-    kp2, desc2 = fast.detectAndCompute(im2, None)
-
 
     # Match descriptors from both images
     bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
@@ -80,16 +69,6 @@ def getCorrespondences(im1, im2):
     im2_points = np.array(im2_points)
     return im1_points, im2_points
 
-    # im1_points = []
-    # im2_points = []
-    # for match in matches:
-    #     im1_points.append(kp1[match.queryIdx].pt)
-    #     im2_points.append(kp2[match.trainIdx].pt)
-    
-    # # Convert the points objects to coordinates
-    # im1_points = np.array(im1_points)
-    # im2_points = np.array(im2_points)
-    # return im1_points, im2_points
     
 
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
