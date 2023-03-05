@@ -150,14 +150,58 @@ def estimateTransformTest(im1_points, im2_points):
     pass
     
 
-def estimateTransformRANSCAC(pts1, pts2):
-    Nransac = 100000
+# def estimateTransformRANSAC(pts1, pts2):
+#     Nransac = 100000
+#     th = 5
+#     n = pts1.shape[1]
+#     #print size of n
+#     print(pts1.shape)
+#     print(pts2.shape)
+
+#     nkeepmax = 0
+
+#     for ir in range(Nransac):
+#         idx = np.random.choice(n, size=4, replace=False)
+#         pts1s = pts1[:, idx]
+#         pts2s = pts2[:, idx]
+
+#         H = estimateTransform(pts1s, pts2s)
+
+#         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
+#         pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
+
+#         d = np.sum((pts2estim.T - pts2)**2, axis=1) # squared distance
+
+#         keep = np.where(d < th)[0]
+#         nkeep = len(keep)
+
+#         if nkeep > nkeepmax:
+#             nkeepmax = nkeep
+#             Hkeepmax = H
+#             keepmax = keep
+
+#     pts1keep = pts1[:, keepmax]
+#     pts2keep = pts2[:, keepmax]
+
+#     Hbetter = estimateTransform(pts1keep, pts2keep)
+    
+#     print(Hbetter)
+#     pass
+    #return Hbetter
+
+def estimateTransformRANSAC(pts1, pts2):
+    Nransac = 10000
     th = 5
+    k = 4
     n = pts1.shape[1]
     nkeepmax = 0
 
+    if n < k:
+        print('Error: Input arrays must have at least {} data points'.format(k))
+        return None
+
     for ir in range(Nransac):
-        idx = np.random.choice(n, size=4, replace=False)
+        idx = np.random.choice(n, size=k, replace=False)
         pts1s = pts1[:, idx]
         pts2s = pts2[:, idx]
 
@@ -166,7 +210,7 @@ def estimateTransformRANSCAC(pts1, pts2):
         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
         pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
 
-        d = np.sum((pts2estim.T - pts2)**2, axis=1) # squared distance
+        d = np.sqrt(np.sum((pts2estim.T - pts2)**2, axis=1)) # euclidean distance
 
         keep = np.where(d < th)[0]
         nkeep = len(keep)
@@ -180,7 +224,7 @@ def estimateTransformRANSCAC(pts1, pts2):
     pts2keep = pts2[:, keepmax]
 
     Hbetter = estimateTransform(pts1keep, pts2keep)
-    
+
     print(Hbetter)
 
     return Hbetter
@@ -232,7 +276,7 @@ def main():
 
     moo1, moo2 = getCorrespondences(image1, image2)
 
-    # Part 4: we apply the Homography
+    homoo = estimateTransformRANSAC(moo1, moo2)
     
 
 if __name__ == '__main__':
