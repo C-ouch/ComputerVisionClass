@@ -3,7 +3,8 @@
 from transformImage import transformImage # From the previous homework
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
+
+#from matplotlib import pyplot as plt
 
 # HELP BLOCK to explain the code
 # There are several functions defined
@@ -26,30 +27,59 @@ def setupImages(im1, im2):
 
 
 # Obtainihng Correspondences using OpenCV's Fast
+def getCorrespondences(im1, im2):
+    # Initiate FAST object with default values
+    fast = cv2.FastFeatureDetector_create()
 
-# Initiate FAST object with default values
-fast = cv2.FastFeatureDetector_create()
+    # find the keypoints
+    kp1 = fast.detect(im1,None)
+    kp2 = fast.detect(im2,None)
 
-# find and draw the keypoints
-kp = fast.detect(img,None)
-img_points = cv2.drawKeypoints(img, kp, None, color=(255,0,0))
+    # Draw keypoints on both images
+    img1 = cv2.drawKeypoints(img1, kp1, None)
+    img2 = cv2.drawKeypoints(img2, kp2, None)
 
-# Print all default params
-print( "Threshold: {}".format(fast.getThreshold()) )
-print( "nonmaxSuppression:{}".format(fast.getNonmaxSuppression()) )
-print( "neighborhood: {}".format(fast.getType()) )
-print( "Total Keypoints with nonmaxSuppression: {}".format(len(kp)) )
-cv.imwrite('fast_true.png', img2)
+    # Compute descriptors for keypoints
+    orb = cv2.ORB_create()
+    kp1, desc1 = orb.compute(im1, kp1)
+    kp2, desc2 = orb.compute(im2, kp2)
 
-# Disable nonmaxSuppression
-fast.setNonmaxSuppression(0)
-kp = fast.detect(img, None)
+    # Match descriptors from both images
+    bf = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+    matches = bf.match(desc1,desc2)
 
-print( "Total Keypoints without nonmaxSuppression: {}".format(len(kp)) )
+    # Extract objects for the matched points and convert them to coordinates
+    im1_points = []
+    im2_points = []
+    for match in matches:
+        im1_points.append(kp1[match.queryIdx].pt)
+        im2_points.append(kp2[match.trainIdx].pt)
 
-img3 = cv.drawKeypoints(img, kp, None, color=(255,0,0))
+    # Convert the points objects to coordinates
+    im1_points = np.array(im1_points)
+    im2_points = np.array(im2_points)
+    return im1_points, im2_points
 
-cv.imwrite('fast_false.png', img3)
+    # im1_points = []
+    # im2_points = []
+    # for match in matches:
+    #     im1_points.append(kp1[match.queryIdx].pt)
+    #     im2_points.append(kp2[match.trainIdx].pt)
+    
+    # # Convert the points objects to coordinates
+    # im1_points = np.array(im1_points)
+    # im2_points = np.array(im2_points)
+    # return im1_points, im2_points
+
+    
+
+
+
+
+
+
+    
+    
 
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
 # to ‘im2_points’, i.e., to determine the transform between ‘im1’ to ‘im2’. Your function should
@@ -212,3 +242,19 @@ def estimateTransform(pts1, pts2):
 # and will have slight differences. Again, this is fine, as your ‘im2_transformed’ depends on the
 # estimate of A calculated using your correspondences. It should not look too different from
 # the image shown here.
+
+
+
+
+def main():
+    im1 = 'HW_3\images\Image1.jpg'
+    im2 = 'HW_3\images\Image2.jpg'
+
+    image1, image2 = setupImages(im1, im2)
+    cv2.imwrite('GRAY.png', image1)
+
+    getCorrespondences(image1)
+    
+
+if __name__ == '__main__':
+    main()
