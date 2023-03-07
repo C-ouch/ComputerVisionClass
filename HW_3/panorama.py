@@ -190,6 +190,62 @@ def estimateTransformTest(im1_points, im2_points):
 #     pass
     #return Hbetter
 
+# def estimateTransformRANSAC(pts1, pts2):
+#     Nransac = 10000
+#     th = 5
+#     k = 4
+#     n = pts1.shape[0]
+#     nkeepmax = 0
+#     # print the shape of pts1 and pts2
+#     print("pts1.shape: ",pts1.shape)
+#     print("pts2.shape: ",pts2.shape)
+
+#     if n < k:
+#         print('Error: Input arrays must have at least {} data points'.format(k))
+#         return None
+
+#     for ir in range(Nransac):
+#         idx = np.random.choice(n, size=k, replace=False)
+#         pts1s = pts1[idx, :]
+#         pts2s = pts2[idx, :]
+#         #print the shape
+#         print("pts1s.shape: ",pts1s.shape)
+#         print("pts2s.shape: ",pts2s.shape)
+
+#         H = estimateTransform(pts1s, pts2s)
+
+#         ####### COMMENT: Check to make sure pts1 is transposed since that 
+#         ####### whats happening in the matlab code
+
+#         #transpose pts1
+#         # pts1 = pts1.T
+
+#         #######COMMENT: ones() function might be in wrong orientation and
+#         ####### same with vstack()
+#         #print shape of np.ones
+#         print("np.ones shape:",np.ones((n, 1)).shape)
+#         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
+#         pts2estim = pts2estim_h[:, :2] / pts2estim_h[:, 2, np.newaxis] # euclidean coordinates
+
+#         d = np.sqrt(np.sum((pts2estim.T - pts2)**2, axis=1)) # euclidean distance
+
+#         keep = np.where(d < th)[0]
+#         nkeep = len(keep)
+
+#         if nkeep > nkeepmax:
+#             nkeepmax = nkeep
+#             Hkeepmax = H
+#             keepmax = keep
+
+#     pts1keep = pts1[keepmax,:]
+#     pts2keep = pts2[keepmax,:]
+
+#     Hbetter = estimateTransform(pts1keep, pts2keep)
+
+#     print(Hbetter)
+
+#     return Hbetter
+
 def estimateTransformRANSAC(pts1, pts2):
     Nransac = 10000
     th = 5
@@ -201,6 +257,8 @@ def estimateTransformRANSAC(pts1, pts2):
         print('Error: Input arrays must have at least {} data points'.format(k))
         return None
 
+    keepmax = None
+
     for ir in range(Nransac):
         idx = np.random.choice(n, size=k, replace=False)
         pts1s = pts1[idx, :]
@@ -208,18 +266,13 @@ def estimateTransformRANSAC(pts1, pts2):
 
         H = estimateTransform(pts1s, pts2s)
 
-        ####### COMMENT: Check to make sure pts1 is transposed since that 
-        ####### whats happening in the matlab code
+        print('pts1 shape:', pts1.shape)
+        print('ones shape:', np.ones((n, 1)).shape)
 
-        #transpose pts1
-        # pts1 = pts1.T
+        pts1estim_h = np.hstack((pts1, np.ones((n, 1)))) @ H.T # homogenous coordinates
+        pts1estim = pts1estim_h[:, :2] / pts1estim_h[:, 2, np.newaxis] # euclidean coordinates
 
-        #######COMMENT: ones() function might be in wrong orientation and
-        ####### same with vstack()
-        pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
-        pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
-
-        d = np.sqrt(np.sum((pts2estim.T - pts2)**2, axis=1)) # euclidean distance
+        d = np.sqrt(np.sum((pts1estim - pts2)**2, axis=1)) # euclidean distance
 
         keep = np.where(d < th)[0]
         nkeep = len(keep)
@@ -229,14 +282,17 @@ def estimateTransformRANSAC(pts1, pts2):
             Hkeepmax = H
             keepmax = keep
 
+    if keepmax is None:
+        print('Error: RANSAC failed to find a suitable transform')
+        return None
+
     pts1keep = pts1[keepmax,:]
     pts2keep = pts2[keepmax,:]
 
     Hbetter = estimateTransform(pts1keep, pts2keep)
 
-    print(Hbetter)
-
     return Hbetter
+
 
 # This gives us a hypothesis for a homography matrix between two sets of correspondence points, it is called in RANSAC repeatedly
 def estimateTransform(pts1, pts2):
