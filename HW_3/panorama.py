@@ -51,6 +51,7 @@ def getCorrespondences(im1, im2):
     for match in matches:
         im1_points.append(kp1[match.queryIdx].pt)
         im2_points.append(kp2[match.trainIdx].pt)
+    
 
     # Draw matches between images
     img3 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None)
@@ -63,8 +64,8 @@ def getCorrespondences(im1, im2):
     cv2.imwrite("img2.jpg", im2)
     cv2.imwrite("Matches.jpg", img3)
 
-
-    # Convert the points objects to coordinates
+ 
+    # Convert the points objects to coordinates (one row = one point[x,y])
     im1_points = np.array(im1_points)
     im2_points = np.array(im2_points)
     return im1_points, im2_points
@@ -193,7 +194,7 @@ def estimateTransformRANSAC(pts1, pts2):
     Nransac = 10000
     th = 5
     k = 4
-    n = pts1.shape[1]
+    n = pts1.shape[0]
     nkeepmax = 0
 
     if n < k:
@@ -202,10 +203,13 @@ def estimateTransformRANSAC(pts1, pts2):
 
     for ir in range(Nransac):
         idx = np.random.choice(n, size=k, replace=False)
-        pts1s = pts1[:, idx]
-        pts2s = pts2[:, idx]
+        pts1s = pts1[idx, :]
+        pts2s = pts2[idx, :]
 
         H = estimateTransform(pts1s, pts2s)
+
+        #transpose pts1
+        pts1 = pts1.T
 
         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
         pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
@@ -246,6 +250,7 @@ def estimateTransform(pts1, pts2):
     _, _, V = np.linalg.svd(A)
 
     H = np.reshape(V[-1, :], (3, 3))
+    print(H)
 
     return H / H[2, 2] # we return a normalized homography matrix, the last value is 1
     
@@ -272,11 +277,25 @@ def main():
     im1 = 'HW_3\images\Image1.jpg'
     im2 = 'HW_3\images\Image2.jpg'
 
-    image1, image2 = setupImages(im1, im2)
+    test1 = np.array([[1373, 1204], [1841, 1102], [1733, 1213], [2099, 1297]])
+    # print(test1.shape)
+    test2 = np.array([[182, 1160], [728, 1055], [617, 1172], [1001, 1247]])
 
-    moo1, moo2 = getCorrespondences(image1, image2)
+    H= estimateTransform(test1, test2)
+    print(H)
 
-    homoo = estimateTransformRANSAC(moo1, moo2)
+    Hv2 = estimateTransformRANSAC(test1, test2)
+    print(Hv2)
+
+    # image1, image2 = setupImages(im1, im2)
+
+    # moo1, moo2 = getCorrespondences(image1, image2)
+
+    # # print(moo1.shape)
+    # # print(moo1[:,1])
+    # # print(moo1[1,:])
+    # # print(moo2.shape)   
+    # homoo = estimateTransformRANSAC(moo1, moo2)
     
 
 if __name__ == '__main__':
