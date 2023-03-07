@@ -293,34 +293,62 @@ def estimateTransformRANSAC(pts1, pts2):
 
     return Hbetter
 
-
-
 # This gives us a hypothesis for a homography matrix between two sets of correspondence points, it is called in RANSAC repeatedly
 def estimateTransform(pts1, pts2):
-    n = pts1.shape[0]
-    A = np.zeros((2*n, 9))
+    """Estimate a homography matrix between two sets of points."""
+    n = pts1.shape[0] # number of points
+    A = np.zeros((2*n, 9)) # create an empty matrix A
 
-    for i in range(n):
-        x = pts1[i, 0]
-        y = pts1[i, 1]
-        xp = pts2[i, 0]
-        yp = pts2[i, 1]
+    for i in range(n): # for each point, we create a row in A
+        x = pts1[i, 0] # x coordinate of the point in image 1
+        y = pts1[i, 1] # y coordinate of the point in image 1
+        xp = pts2[i, 0] # x coordinate of the point in image 2
+        yp = pts2[i, 1] # y coordinate of the point in image 2
 
-        A[2*i, :] = [-x, -y, -1, 0, 0, 0, xp*x, xp*y, xp]
-        A[2*i+1, :] = [0, 0, 0, -x, -y, -1, yp*x, yp*y, yp]
+        # the A matrix is filled in with the values of the points
+        A[2*i, :] = [-x, -y, -1, 0, 0, 0, xp*x, xp*y, xp] # fill in the even rows of A
+        A[2*i+1, :] = [0, 0, 0, -x, -y, -1, yp*x, yp*y, yp] # fill in the odd rows of A
 
-    _, _, V = np.linalg.svd(A)
-
-    H = np.reshape(V[-1, :], (3, 3))
-
-    # Force the homography matrix to satisfy the constraints
-    # H = H / H[2, 2]
-    # H /= H[2, 2]
-    # H = np.clip(H, -10, 10)
-    # print(H)
-
-    return H # we return a normalized homography matrix, the last value is 1
+    """
+    _, _, V = np.linalg.svd(A) 
+    You can use this, but we will be doing the SVD manually
+    using the method: and creating a design matrix P and a vector r. We also saw how to estimate q by 
+    using homo- geneous least squares, with singular value decomposition (SVD). The function estimateTransform
+    should create P and r according to the direct linear transform (DLT) approach we saw in class.
+    Note: you will get full credit for using a for loop to create P. However, there are ways to create
+    both P without using a for loop. While r is relatively easy to create without a for loop, you
+    will get 1 bonus point for figuring out how to create P without using a for loop! Once you
+    create P, use the SVD-based method we discussed in class to obtain q from P. Then rear-
+    range the values of q to get the values in A.
+    """
     
+    # create P, which is the design matrix
+    P = np.zeros((2*n, 9))
+    # create P without a for loop by using numpy
+    # it works by dividing the last column of A by the last value of each row of A
+    P = A / A[:, -1][:, np.newaxis]
+
+    # create r in order to use SVD
+    # r is the last column of A
+    r = np.zeros((2*n, 1)) # create an empty matrix r
+    r[:, 0] = A[:, 8] # fill in the last column of A
+
+    # create q from P based on Singular Value Decomposition method
+    # get P transpose
+    PTP = np.dot(P.T, P) # A symmetric matrix that contains the covariance of the data, used as intermediate step in Principal Component Analysis
+    eigenvalues, eigenvectors = np.linalg.eig(PTP) # perform SVD on P by using eigenvalues and eigenvectors
+    min_eigenvalue_idx = np.argmin(eigenvalues) # it is important to get the smallest eigenvalue
+    q = eigenvectors[:, min_eigenvalue_idx] # q is the last column of V, it is the eigenvector corresponding to the smallest eigenvalue
+    # q /= q[-1] # normalize q by dividing by the last value of q
+
+    # rearrange the values of q to get the values in A
+    A = np.zeros((3, 3))
+    A[0, :] = q[0:3]
+    A[1, :] = q[3:6]
+    A[2, :] = q[6:9]
+
+    return A # return the estimated homography matrix
+
 
 # 4: Applying the Homography
 # Use the function transformImage written in Assignment 1 to transform ‘im2’ to
@@ -338,7 +366,26 @@ def estimateTransform(pts1, pts2):
 # estimate of A calculated using your correspondences. It should not look too different from
 # the image shown here.
 
+# blend two images together using the ramp blur blending method
+def blendImages(im1, im2, blur_threshold=0.5):
+    """Blend two images together using ramp blur blending."""
+    # get the size of the images
+    im1_size = im1.shape
+    im2_size = im2.shape
 
+    # create the ramp blur
+    ramp = np.zeros(im1_size)
+    for i in range(im1_size[0]):
+        for j in range(im1_size[1]):
+            if (i < im1_size[0] * blur_threshold):
+                ramp[i, j] = 1
+            else:
+                ramp[i, j] = (im1_size[0] - i) / (im1_size[0] * (1 - blur_threshold))
+
+    # blend the images together
+    blended = im1 * ramp + im2 * (1 - ramp)
+
+    return blended
 
 def main():
     im1 = 'images\Image1.jpg'
@@ -364,15 +411,28 @@ def main():
     Hv2inv = np.linalg.inv(Hv2)
     print("Hv2inv",Hv2inv)
 
-    transformImage(image2, Hv2inv,"homography")
+    im3 = transformImage(image2, Hv2inv,"homography")
+
+    im4 = blendImages(image1, im3)
+    cv2.imwrite('panorama.jpg', im4)
 
     # size of image1
     print("size of image1",image1.shape)
-    
+    # size of image2
+    print("size of image2",image2.shape)
+    # size of im3
+    print("size of im3",im3.shape)
+    # make a copy of image1 that is the same size as im3 with black pixels
+    # im4 = np.zeros(im3.shape)
+    # copy image1 into the top left corner of im4
+    # im4[0:image1.shape[0], 0:image1.shape[1]] = image1
+    # write the image to a file
+    # cv2.imwrite('panorama_source1.jpg', im4)
 
-    # moo1, moo2 = getCorrespondences(image1, image2)
- 
-    # homoo = estimateTransformRANSAC(moo1, moo2)
+    # blend the images together
+    # im5 = blendImages(image1, im3)
+    # write the image to a file
+    # cv2.imwrite('panorama_final.jpg', im5)
     
 
 if __name__ == '__main__':
