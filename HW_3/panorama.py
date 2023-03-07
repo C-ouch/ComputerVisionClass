@@ -208,9 +208,14 @@ def estimateTransformRANSAC(pts1, pts2):
 
         H = estimateTransform(pts1s, pts2s)
 
-        #transpose pts1
-        pts1 = pts1.T
+        ####### COMMENT: Check to make sure pts1 is transposed since that 
+        ####### whats happening in the matlab code
 
+        #transpose pts1
+        # pts1 = pts1.T
+
+        #######COMMENT: ones() function might be in wrong orientation and
+        ####### same with vstack()
         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
         pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
 
@@ -224,8 +229,8 @@ def estimateTransformRANSAC(pts1, pts2):
             Hkeepmax = H
             keepmax = keep
 
-    pts1keep = pts1[:, keepmax]
-    pts2keep = pts2[:, keepmax]
+    pts1keep = pts1[keepmax,:]
+    pts2keep = pts2[keepmax,:]
 
     Hbetter = estimateTransform(pts1keep, pts2keep)
 
@@ -290,11 +295,7 @@ def main():
     # image1, image2 = setupImages(im1, im2)
 
     # moo1, moo2 = getCorrespondences(image1, image2)
-
-    # # print(moo1.shape)
-    # # print(moo1[:,1])
-    # # print(moo1[1,:])
-    # # print(moo2.shape)   
+ 
     # homoo = estimateTransformRANSAC(moo1, moo2)
     
 
