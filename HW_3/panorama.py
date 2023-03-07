@@ -15,13 +15,43 @@ import numpy as np
 # your images into MATLAB. For this assignment, you can convert them to grayscale. Also make
 # sure you convert them to double using im2double.
 
+# resize image to be divisible by 3
+def resizeImage(img, scale_percent):
+    # Get the current dimensions of the image
+    height, width = img.shape[:2]
+
+    # Calculate the new dimensions of the image based on the given scale
+    new_height = int(height * scale_percent / 100)
+    new_width = int(width * scale_percent / 100)
+
+    # Calculate the nearest width that is divisible by 3
+    new_width = int(new_width / 3) * 3
+
+    # Calculate the nearest height that is divisible by 3
+    new_height = int(new_height / 3) * 3
+
+    # Resize the image using OpenCV's resize function
+    resized_img = cv2.resize(img, (new_width, new_height), interpolation=cv2.INTER_LINEAR)
+
+    return resized_img
+
 # Part 1: We set up the images we have by loading them and converting them to grayscale
-def setupImages(im1, im2):
+def setupImages(im1, im2, scale_percent=100):
     # load images and convert to grayscale
     im1 = cv2.imread(im1, cv2.IMREAD_COLOR)
     im2 = cv2.imread(im2, cv2.IMREAD_COLOR)
     im1 = cv2.cvtColor(im1, cv2.COLOR_BGR2GRAY)
     im2 = cv2.cvtColor(im2, cv2.COLOR_BGR2GRAY)
+
+    # Resize the images to be divisible by 3
+    im1 = resizeImage(im1, scale_percent)
+    im2 = resizeImage(im2, scale_percent)
+
+    # check if images are divisible by 3
+    if im1.shape[0] % 3 != 0 or im1.shape[1] % 3 != 0 or im2.shape[0] % 3 != 0 or im2.shape[1] % 3 != 0:
+        print("ERROR: Images are not divisible by 3")
+        exit()
+
     # convert to double
     # im1 = im1.astype(np.float64)
     # im2 = im2.astype(np.float64)
@@ -69,6 +99,46 @@ def getCorrespondences(im1, im2):
     im1_points = np.array(im1_points)
     im2_points = np.array(im2_points)
     return im1_points, im2_points
+
+# def getCorrespondences(im1, im2):
+#     # Initiate SIFT detector
+#     sift = cv2.xfeatures2d.SIFT_create(nfeatures=10000)
+
+#     # find the keypoints and descriptors with SIFT
+#     kp1, desc1 = sift.detectAndCompute(im1, None)
+#     kp2, desc2 = sift.detectAndCompute(im2, None)
+
+#     # Draw keypoints on both images
+#     im1 = cv2.drawKeypoints(im1, kp1, None)
+#     im2 = cv2.drawKeypoints(im2, kp2, None)
+
+#     # Match descriptors from both images
+#     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
+#     matches = bf.match(desc1, desc2)
+
+#     # Extract objects for the matched points and convert them to coordinates
+#     im1_points = []
+#     im2_points = []
+#     for match in matches:
+#         im1_points.append(kp1[match.queryIdx].pt)
+#         im2_points.append(kp2[match.trainIdx].pt)
+
+#     # Draw matches between images
+#     img3 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None)
+
+#     # Display the results
+#     print("Total Keypoints for 1: {}".format(len(kp1)))
+#     print("Total Keypoints for 2: {}".format(len(kp2)))
+
+#     cv2.imwrite("img.jpg", im1)
+#     cv2.imwrite("img2.jpg", im2)
+#     cv2.imwrite("Matches.jpg", img3)
+
+#     # Convert the points objects to coordinates (one row = one point[x,y])
+#     im1_points = np.array(im1_points)
+#     im2_points = np.array(im2_points)
+
+#     return im1_points, im2_points
 
     
 
@@ -146,105 +216,6 @@ def getCorrespondences(im1, im2):
 # from the one above. This is fine, as the results from RANSAC + homogeneous least squares
 # depend upon the random samples chosen.
 
-# This gives us a homography matrix
-def estimateTransformTest(im1_points, im2_points):
-    pass
-    
-
-# def estimateTransformRANSAC(pts1, pts2):
-#     Nransac = 100000
-#     th = 5
-#     n = pts1.shape[1]
-#     #print size of n
-#     print(pts1.shape)
-#     print(pts2.shape)
-
-#     nkeepmax = 0
-
-#     for ir in range(Nransac):
-#         idx = np.random.choice(n, size=4, replace=False)
-#         pts1s = pts1[:, idx]
-#         pts2s = pts2[:, idx]
-
-#         H = estimateTransform(pts1s, pts2s)
-
-#         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
-#         pts2estim = pts2estim_h[:2, :] / pts2estim_h[2, :] # euclidean coordinates
-
-#         d = np.sum((pts2estim.T - pts2)**2, axis=1) # squared distance
-
-#         keep = np.where(d < th)[0]
-#         nkeep = len(keep)
-
-#         if nkeep > nkeepmax:
-#             nkeepmax = nkeep
-#             Hkeepmax = H
-#             keepmax = keep
-
-#     pts1keep = pts1[:, keepmax]
-#     pts2keep = pts2[:, keepmax]
-
-#     Hbetter = estimateTransform(pts1keep, pts2keep)
-    
-#     print(Hbetter)
-#     pass
-    #return Hbetter
-
-# def estimateTransformRANSAC(pts1, pts2):
-#     Nransac = 10000
-#     th = 5
-#     k = 4
-#     n = pts1.shape[0]
-#     nkeepmax = 0
-#     # print the shape of pts1 and pts2
-#     print("pts1.shape: ",pts1.shape)
-#     print("pts2.shape: ",pts2.shape)
-
-#     if n < k:
-#         print('Error: Input arrays must have at least {} data points'.format(k))
-#         return None
-
-#     for ir in range(Nransac):
-#         idx = np.random.choice(n, size=k, replace=False)
-#         pts1s = pts1[idx, :]
-#         pts2s = pts2[idx, :]
-#         #print the shape
-#         print("pts1s.shape: ",pts1s.shape)
-#         print("pts2s.shape: ",pts2s.shape)
-
-#         H = estimateTransform(pts1s, pts2s)
-
-#         ####### COMMENT: Check to make sure pts1 is transposed since that 
-#         ####### whats happening in the matlab code
-
-#         #transpose pts1
-#         # pts1 = pts1.T
-
-#         #######COMMENT: ones() function might be in wrong orientation and
-#         ####### same with vstack()
-#         #print shape of np.ones
-#         print("np.ones shape:",np.ones((n, 1)).shape)
-#         pts2estim_h = H @ np.vstack((pts1, np.ones((1, n)))) # homogenous coordinates
-#         pts2estim = pts2estim_h[:, :2] / pts2estim_h[:, 2, np.newaxis] # euclidean coordinates
-
-#         d = np.sqrt(np.sum((pts2estim.T - pts2)**2, axis=1)) # euclidean distance
-
-#         keep = np.where(d < th)[0]
-#         nkeep = len(keep)
-
-#         if nkeep > nkeepmax:
-#             nkeepmax = nkeep
-#             Hkeepmax = H
-#             keepmax = keep
-
-#     pts1keep = pts1[keepmax,:]
-#     pts2keep = pts2[keepmax,:]
-
-#     Hbetter = estimateTransform(pts1keep, pts2keep)
-
-#     print(Hbetter)
-
-#     return Hbetter
 
 def estimateTransformRANSAC(pts1, pts2):
     Nransac = 10000
@@ -252,6 +223,10 @@ def estimateTransformRANSAC(pts1, pts2):
     k = 4
     n = pts1.shape[0]
     nkeepmax = 0
+
+    #print size of pts1 and pts2
+    print('pts1 shape:', pts1.shape)
+    print('pts2 shape:', pts2.shape)
 
     if n < k:
         print('Error: Input arrays must have at least {} data points'.format(k))
@@ -261,21 +236,46 @@ def estimateTransformRANSAC(pts1, pts2):
 
     for ir in range(Nransac):
         idx = np.random.choice(n, size=k, replace=False)
-        pts1s = pts1[idx, :]
+        pts1s = pts1[idx, :] # select k points from pts1
         pts2s = pts2[idx, :]
 
         H = estimateTransform(pts1s, pts2s)
 
+        # pts1estim_h = np.hstack((pts1, np.ones((n, 1)))) @ H.T # homogenous coordinates
+        # shape of pts1
+
+        #python
+        ones = np.ones((n, 1))
         print('pts1 shape:', pts1.shape)
-        print('ones shape:', np.ones((n, 1)).shape)
+        pts1_h = np.hstack((pts1,ones)) # homogenous coordinates
+        # sizes
+        print('pts1_h shape:', pts1_h.shape)
+        pts2estim_h = np.dot(H, pts1_h.T).T # transform pts1 to pts2 using the estimated transformation matrix H
+        # divide the first two rows by the third row
+        # pts2estim = np.divide(pts2estim_h[:2, :], pts2estim_h[2, :]) #euclidean coordinates
+        pts2estim = pts2estim_h[:, :2] / pts2estim_h[:, 2:]
+        # make all pts2estim values positive
+        pts2estim = np.absolute(pts2estim)
+        
+        # transpose the pts2estim matrix
+        #pts2estim = pts2estim.T
 
-        pts1estim_h = np.hstack((pts1, np.ones((n, 1)))) @ H.T # homogenous coordinates
-        pts1estim = pts1estim_h[:, :2] / pts1estim_h[:, 2, np.newaxis] # euclidean coordinates
-
-        d = np.sqrt(np.sum((pts1estim - pts2)**2, axis=1)) # euclidean distance
+        # shapes
+        print('n:', n)
+        print('pts1_h shape:', pts1_h.shape)
+        print('pts2estim_h shape:', pts2estim_h.shape)
+        print('pts2estim shape:', pts2estim.shape)
+        print('pts2 shape:', pts2.shape)
+        # print values
+        print('pts2estim',pts2estim[0])
+        print('pts2',pts2[0])
+        
+        d = np.sum((pts2estim - pts2)**2, axis=1) # euclidean distance
 
         keep = np.where(d < th)[0]
+        # print('keep:', keep)
         nkeep = len(keep)
+        # print("length: ",len(keep))
 
         if nkeep > nkeepmax:
             nkeepmax = nkeep
@@ -294,16 +294,17 @@ def estimateTransformRANSAC(pts1, pts2):
     return Hbetter
 
 
+
 # This gives us a hypothesis for a homography matrix between two sets of correspondence points, it is called in RANSAC repeatedly
 def estimateTransform(pts1, pts2):
-    n = pts1.shape[1]
+    n = pts1.shape[0]
     A = np.zeros((2*n, 9))
 
     for i in range(n):
-        x = pts1[0, i]
-        y = pts1[1, i]
-        xp = pts2[0, i]
-        yp = pts2[1, i]
+        x = pts1[i, 0]
+        y = pts1[i, 1]
+        xp = pts2[i, 0]
+        yp = pts2[i, 1]
 
         A[2*i, :] = [-x, -y, -1, 0, 0, 0, xp*x, xp*y, xp]
         A[2*i+1, :] = [0, 0, 0, -x, -y, -1, yp*x, yp*y, yp]
@@ -311,9 +312,14 @@ def estimateTransform(pts1, pts2):
     _, _, V = np.linalg.svd(A)
 
     H = np.reshape(V[-1, :], (3, 3))
-    print(H)
 
-    return H / H[2, 2] # we return a normalized homography matrix, the last value is 1
+    # Force the homography matrix to satisfy the constraints
+    # H = H / H[2, 2]
+    # H /= H[2, 2]
+    # H = np.clip(H, -10, 10)
+    # print(H)
+
+    return H # we return a normalized homography matrix, the last value is 1
     
 
 # 4: Applying the Homography
@@ -335,20 +341,34 @@ def estimateTransform(pts1, pts2):
 
 
 def main():
-    im1 = 'HW_3\images\Image1.jpg'
-    im2 = 'HW_3\images\Image2.jpg'
+    im1 = 'images\Image1.jpg'
+    im2 = 'images\Image2.jpg'
 
     test1 = np.array([[1373, 1204], [1841, 1102], [1733, 1213], [2099, 1297]])
     # print(test1.shape)
     test2 = np.array([[182, 1160], [728, 1055], [617, 1172], [1001, 1247]])
 
-    H= estimateTransform(test1, test2)
-    print(H)
+    #H= estimateTransform(test1, test2)
+    #print(H)
 
-    Hv2 = estimateTransformRANSAC(test1, test2)
-    print(Hv2)
+    image1, image2 = setupImages(im1, im2)
+    im1_points, im2_points = getCorrespondences(image1, image2)
+    #print("im1_points",im1_points)
+    #print("im2_points",im2_points)
+    # size print
+    print("size of im1_points",im1_points.shape)
+    print("size of im2_points",im2_points.shape)
 
-    # image1, image2 = setupImages(im1, im2)
+    Hv2 = estimateTransformRANSAC(im1_points, im2_points)
+    #inverse of Hv2
+    Hv2inv = np.linalg.inv(Hv2)
+    print("Hv2inv",Hv2inv)
+
+    transformImage(image2, Hv2inv,"homography")
+
+    # size of image1
+    print("size of image1",image1.shape)
+    
 
     # moo1, moo2 = getCorrespondences(image1, image2)
  

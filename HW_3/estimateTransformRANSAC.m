@@ -19,7 +19,7 @@ for ir = 1:Nransac
 
     pts2estim = pts2estm';
 
-    d = sum((pts2estim - pts2).^2);
+    d = sum((pts2estim - pts2).^2); %
 
     keep = find( d < th );
     nkeep = length(keep);

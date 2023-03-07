@@ -1,96 +1,60 @@
-def transformImage(I, A, transform_type, output_image_name):
-    print(transform_type)
-    
-    # Check if the transform type is valid
-    if transform_type == 'scaling'or'translation'or'rotation'or'reflection'or'homography'or'affine':
+import cv2
+import numpy as np
 
-        # Get the dimensions of the input image
-        H, W = I.shape[:2]
-        
+def transformImage(input_image, transform_matrix, transform_type):
+    # Get the dimensions of the input image
+    hin, win = input_image.shape[:2]
 
+    # Define the output image dimensions
+    hout, wout = hin, win
 
-        # Define the four corners of the input image
-        c1 = np.array([1, 1, 1]).reshape(3, 1)
-        c2 = np.array([W, 1, 1]).reshape(3, 1)
-        c3 = np.array([1, H, 1]).reshape(3, 1)
-        c4 = np.array([W, H, 1]).reshape(3, 1)
+    # Create a meshgrid of pixel coordinates in the output image
+    xout, yout = np.meshgrid(np.arange(wout), np.arange(hout))
 
+    # Create a matrix of homogenized coordinates in the output image
+    p_out = np.vstack((xout.flatten(), yout.flatten(), np.ones(hout*wout)))
 
-        # Transform the corners using the homography matrix A into correspondences
-        cp1 = np.dot(A, c1)
-        cp2 = np.dot(A, c2)
-        cp3 = np.dot(A, c3)
-        cp4 = np.dot(A, c4)
-
-        # Check if the matrix is a homography matrix
-        if transform_type == ("homography"):
-            cp1 = cp1[:2] / cp1[2]
-            cp2 = cp2[:2] / cp2[2]
-            cp3 = cp3[:2] / cp3[2]
-            cp4 = cp4[:2] / cp4[2]
-        
-
-        # Extract the x and y coordinates of the transformed corners
-        # if statement to check if the matrix is a homography matrix
-        if transform_type == ("homography"):
-            xp1, yp1 = cp1.flatten()
-            xp2, yp2 = cp2.flatten()
-            xp3, yp3 = cp3.flatten()
-            xp4, yp4 = cp4.flatten()
-        else:
-            xp1, yp1, _ = cp1.flatten()
-            xp2, yp2, _ = cp2.flatten()
-            xp3, yp3, _ = cp3.flatten()
-            xp4, yp4, _ = cp4.flatten()
-
-        # Find the minimum and maximum x and y values of the transformed corners
-        minx = min(1, xp1, xp2, xp3, xp4)
-        miny = min(1, yp1, yp2, yp3, yp4)
-        maxx = max(W, xp1, xp2, xp3, xp4)
-        maxy = max(H, yp1, yp2, yp3, yp4)
-        #print out xp1, xp2, xp3, xp4, yp1, yp2, yp3, yp4
-        print(xp1, xp2, xp3, xp4, yp1, yp2, yp3, yp4)
-
-        print("min and max: ", minx, miny, maxx, maxy)
-
-        # Create a grid of x and y coordinates in the output image
-        Xprime, Yprime = np.meshgrid(np.arange(minx, maxx+1), np.arange(miny, maxy+1))
-
-
-        # Create a matrix of homogenized coordinates in the output image
-        heightIprime, widthIprime = Xprime.shape
-        pprimematrix = np.vstack((Xprime.flatten(), Yprime.flatten(), np.ones(heightIprime*widthIprime)))
-
-
-        print("after homogenized: " , heightIprime, widthIprime)
-        # Invert the homography matrix to map points from the output image to the input image
-        invA = np.linalg.inv(A)
-
-
-        # Map the homogenized output image coordinates to input image coordinates using the inverted homography matrix
-        phatmatrix = np.dot(invA, pprimematrix)
-
-        # Extract the x and y coordinates from the mapped homogenized input image coordinates
-        xlongvector = phatmatrix[0] / phatmatrix[2]
-        ylongvector = phatmatrix[1] / phatmatrix[2]
-
-        # Reshape the x and y coordinates into a matrix
-        xmatrix = xlongvector.reshape(heightIprime, widthIprime)
-        ymatrix = ylongvector.reshape(heightIprime, widthIprime)
-
-        # Interpolate the input image at the mapped coordinates to create the output image
-        Iprime = cv2.remap(I, xmatrix.astype(np.float32), ymatrix.astype(np.float32), cv2.INTER_LINEAR)
-
-        # crop the output image to fit in the original image size
-        if transform_type == ("reflection"):
-            Iprime = Iprime[0:H, 0:W]
-      
-
-
-        print("at end of func: ",Iprime.shape)
-        # Display the input and output images
-        cv2.imwrite("Input_Image.jpg", I)
-        cv2.imwrite(f"{output_image_name}.jpg", Iprime)
-        print('Transformed image saved to disk.')
+    # Compute the inverse transformation matrix based on the transform type
+    if transform_type == 'scaling':
+        inv_transform = np.diag([1/transform_matrix[0,0], 1/transform_matrix[1,1], 1])
+    elif transform_type == 'rotation':
+        inv_transform = np.linalg.inv(transform_matrix)
+    elif transform_type == 'translation':
+        inv_transform = np.eye(3)
+        inv_transform[0:2,2] = -transform_matrix[0:2,2]
+    elif transform_type == 'reflection':
+        inv_transform = np.linalg.inv(transform_matrix)
+        # Apply the transformation to the input image
+        # This does a reflection on the y-axis
+        # transformed_image = cv2.warpAffine(input_image, inv_transform[0:2], (win, hin))
+        return transformed_image
+    elif transform_type == 'shear':
+        inv_transform = np.eye(3)
+        inv_transform[0,1] = -transform_matrix[0,1]/transform_matrix[0,0]
+    elif transform_type == 'affine':
+        # Check if the inverse transformation matrix is an affine transformation matrix
+        if np.abs(np.linalg.det(inv_transform) - 1) > 1e-6:
+            print(np.abs(np.linalg.det(inv_transform) - 1))
+            raise ValueError('Matrix is not a proper affine transformation matrix')
+        inv_transform = np.linalg.inv(transform_matrix)
+    elif transform_type == 'homography':
+        inv_transform = np.linalg.inv(transform_matrix)
     else:
-        raise ValueError('The transform type is not valid')
+        raise ValueError('Invalid transform type specified')
+
+    
+
+    # Map the homogenized output image coordinates to input image coordinates using the inverse transform
+    p_in = np.dot(inv_transform, p_out)
+
+    # Extract the x and y coordinates from the mapped homogenized input image coordinates
+    xin = p_in[0] / p_in[2]
+    yin = p_in[1] / p_in[2]
+
+    # Interpolate the input image at the mapped coordinates to create the output image
+    transformed_image = cv2.remap(input_image, xin.reshape(hout, wout).astype(np.float32), yin.reshape(hout, wout).astype(np.float32), cv2.INTER_LINEAR)
+
+    # write the image to file
+    cv2.imwrite('transformed_image.png', transformed_image)
+
+    return transformed_image
