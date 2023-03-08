@@ -100,48 +100,6 @@ def getCorrespondences(im1, im2):
     im2_points = np.array(im2_points)
     return im1_points, im2_points
 
-# def getCorrespondences(im1, im2):
-#     # Initiate SIFT detector
-#     sift = cv2.xfeatures2d.SIFT_create(nfeatures=10000)
-
-#     # find the keypoints and descriptors with SIFT
-#     kp1, desc1 = sift.detectAndCompute(im1, None)
-#     kp2, desc2 = sift.detectAndCompute(im2, None)
-
-#     # Draw keypoints on both images
-#     im1 = cv2.drawKeypoints(im1, kp1, None)
-#     im2 = cv2.drawKeypoints(im2, kp2, None)
-
-#     # Match descriptors from both images
-#     bf = cv2.BFMatcher(cv2.NORM_L2, crossCheck=True)
-#     matches = bf.match(desc1, desc2)
-
-#     # Extract objects for the matched points and convert them to coordinates
-#     im1_points = []
-#     im2_points = []
-#     for match in matches:
-#         im1_points.append(kp1[match.queryIdx].pt)
-#         im2_points.append(kp2[match.trainIdx].pt)
-
-#     # Draw matches between images
-#     img3 = cv2.drawMatches(im1, kp1, im2, kp2, matches, None)
-
-#     # Display the results
-#     print("Total Keypoints for 1: {}".format(len(kp1)))
-#     print("Total Keypoints for 2: {}".format(len(kp2)))
-
-#     cv2.imwrite("img.jpg", im1)
-#     cv2.imwrite("img2.jpg", im2)
-#     cv2.imwrite("Matches.jpg", img3)
-
-#     # Convert the points objects to coordinates (one row = one point[x,y])
-#     im1_points = np.array(im1_points)
-#     im2_points = np.array(im2_points)
-
-#     return im1_points, im2_points
-
-    
-
 # Write a function, estimateTransform to determine the transform between ‘im1_points’
 # to ‘im2_points’, i.e., to determine the transform between ‘im1’ to ‘im2’. Your function should
 # have the form:
@@ -218,7 +176,9 @@ def getCorrespondences(im1, im2):
 
 
 def estimateTransformRANSAC(pts1, pts2):
-    Nransac = 10000
+    """Estimate the transform between two sets of points using RANSAC"""
+    # RANSAC is Ra
+    Nransac = 1000
     th = 5
     k = 4
     n = pts1.shape[0]
@@ -232,19 +192,15 @@ def estimateTransformRANSAC(pts1, pts2):
         print('Error: Input arrays must have at least {} data points'.format(k))
         return None
 
-    keepmax = None
+    keepmax = None # indices of the points that agree with the model
 
-    for ir in range(Nransac):
+    for ir in range(Nransac): # for each RANSAC iteration
         idx = np.random.choice(n, size=k, replace=False)
         pts1s = pts1[idx, :] # select k points from pts1
         pts2s = pts2[idx, :]
 
         H = estimateTransform(pts1s, pts2s)
 
-        # pts1estim_h = np.hstack((pts1, np.ones((n, 1)))) @ H.T # homogenous coordinates
-        # shape of pts1
-
-        #python
         ones = np.ones((n, 1))
         print('pts1 shape:', pts1.shape)
         pts1_h = np.hstack((pts1,ones)) # homogenous coordinates
@@ -256,9 +212,6 @@ def estimateTransformRANSAC(pts1, pts2):
         pts2estim = pts2estim_h[:, :2] / pts2estim_h[:, 2:]
         # make all pts2estim values positive
         pts2estim = np.absolute(pts2estim)
-        
-        # transpose the pts2estim matrix
-        #pts2estim = pts2estim.T
 
         # shapes
         print('n:', n)
@@ -273,23 +226,21 @@ def estimateTransformRANSAC(pts1, pts2):
         d = np.sum((pts2estim - pts2)**2, axis=1) # euclidean distance
 
         keep = np.where(d < th)[0]
-        # print('keep:', keep)
         nkeep = len(keep)
-        # print("length: ",len(keep))
 
-        if nkeep > nkeepmax:
-            nkeepmax = nkeep
-            Hkeepmax = H
-            keepmax = keep
+        if nkeep > nkeepmax: # if we have more inliers than before, update the best model
+            nkeepmax = nkeep # update the number of inliers
+            Hkeepmax = H # keep the best model
+            keepmax = keep # keep the indices of the inliers
 
-    if keepmax is None:
+    if keepmax is None: # if we didn't find any inliers
         print('Error: RANSAC failed to find a suitable transform')
         return None
 
-    pts1keep = pts1[keepmax,:]
-    pts2keep = pts2[keepmax,:]
+    pts1keep = pts1[keepmax,:] # keep the inliers
+    pts2keep = pts2[keepmax,:] # keep the inliers
 
-    Hbetter = estimateTransform(pts1keep, pts2keep)
+    Hbetter = estimateTransform(pts1keep, pts2keep) # perform a final least squares solve on the inliers
 
     return Hbetter
 
@@ -339,7 +290,6 @@ def estimateTransform(pts1, pts2):
     eigenvalues, eigenvectors = np.linalg.eig(PTP) # perform SVD on P by using eigenvalues and eigenvectors
     min_eigenvalue_idx = np.argmin(eigenvalues) # it is important to get the smallest eigenvalue
     q = eigenvectors[:, min_eigenvalue_idx] # q is the last column of V, it is the eigenvector corresponding to the smallest eigenvalue
-    # q /= q[-1] # normalize q by dividing by the last value of q
 
     # rearrange the values of q to get the values in A
     A = np.zeros((3, 3))
@@ -373,17 +323,23 @@ def blendImages(im1, im2, blur_threshold=0.5):
     im1_size = im1.shape
     im2_size = im2.shape
 
-    # create the ramp blur
-    ramp = np.zeros(im1_size)
-    for i in range(im1_size[0]):
-        for j in range(im1_size[1]):
-            if (i < im1_size[0] * blur_threshold):
-                ramp[i, j] = 1
-            else:
-                ramp[i, j] = (im1_size[0] - i) / (im1_size[0] * (1 - blur_threshold))
+    # create the ramp blur along the x axis
+    ramp = np.linspace(0, 1, im1_size[1])
+    # make the blur threshold
+    ramp[ramp > blur_threshold] = 1
+
+    # create the ramp blur along the y axis
+    # ramp = np.tile(ramp, (im1_size[0], 1))
+
+    # create the ramp blur along the x axis
+    ramp2 = np.linspace(1, 0, im2_size[1])
+    # make the blur threshold
+    ramp2[ramp2 > blur_threshold] = 1
+    # create the ramp blur along the y axis
+    # ramp2 = np.tile(ramp2, (im2_size[0], 1))
 
     # blend the images together
-    blended = im1 * ramp + im2 * (1 - ramp)
+    blended = im1 * ramp + im2 * ramp2
 
     return blended
 
@@ -400,11 +356,6 @@ def main():
 
     image1, image2 = setupImages(im1, im2)
     im1_points, im2_points = getCorrespondences(image1, image2)
-    #print("im1_points",im1_points)
-    #print("im2_points",im2_points)
-    # size print
-    print("size of im1_points",im1_points.shape)
-    print("size of im2_points",im2_points.shape)
 
     Hv2 = estimateTransformRANSAC(im1_points, im2_points)
     #inverse of Hv2
@@ -415,25 +366,6 @@ def main():
 
     im4 = blendImages(image1, im3)
     cv2.imwrite('panorama.jpg', im4)
-
-    # size of image1
-    print("size of image1",image1.shape)
-    # size of image2
-    print("size of image2",image2.shape)
-    # size of im3
-    print("size of im3",im3.shape)
-    # make a copy of image1 that is the same size as im3 with black pixels
-    # im4 = np.zeros(im3.shape)
-    # copy image1 into the top left corner of im4
-    # im4[0:image1.shape[0], 0:image1.shape[1]] = image1
-    # write the image to a file
-    # cv2.imwrite('panorama_source1.jpg', im4)
-
-    # blend the images together
-    # im5 = blendImages(image1, im3)
-    # write the image to a file
-    # cv2.imwrite('panorama_final.jpg', im5)
-    
 
 if __name__ == '__main__':
     main()

@@ -54,13 +54,13 @@ def transformImage(input_image, transform_matrix, transform_type):
     # Interpolate the input image at the mapped coordinates to create the output image
     transformed_image = cv2.remap(input_image, xin.reshape(hout, wout).astype(np.float32), yin.reshape(hout, wout).astype(np.float32), cv2.INTER_LINEAR)
 
-    # create a black image to hold the transformed image at the correct size
-    transformed_black = np.zeros(transformed_image.shape, dtype=np.uint8)
-    # copy the transformed image into the top left part of the black image
-    transformed_black[0:transformed_image.shape[0], 0:transformed_image.shape[1]] = transformed_image
+    # place the transformed image in the center of the output image
+    # output_image = np.zeros((hout, wout), dtype=np.uint8)
+    # transformed_image = transformed_image[int(ymin):int(ymin+hout), int(xmin):int(xmin+wout)]
+    
     # write the image to file
-    cv2.imwrite('transformed_image.png', transformed_black)
+    cv2.imwrite('transformed_image.png', transformed_image)
     # print out the size the transformed image
-    print("transformed image shape: ",transformed_black.shape)
+    print("transformed image shape: ",transformed_image.shape)
 
-    return transformed_black
+    return transformed_image
