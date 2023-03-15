@@ -1,6 +1,6 @@
 # The following code is for creating panoramas from a set of images
 # It uses opencv and numpy
-from transformImage import transformImage # From the previous homework
+from transformOriginal import transformImage # From the previous homework
 import cv2
 import numpy as np
 
@@ -90,9 +90,9 @@ def getCorrespondences(im1, im2):
     print( "Total Keypoints for 1: {}".format(len(kp1)) )
     print( "Total Keypoints for 2: {}".format(len(kp2)) )
 
-    cv2.imwrite("img.jpg", im1)
-    cv2.imwrite("img2.jpg", im2)
-    cv2.imwrite("Matches.jpg", img3)
+    cv2.imwrite("out_im\img.jpg", im1)
+    cv2.imwrite("out_im\img2.jpg", im2)
+    cv2.imwrite("out_im\Matches.jpg", img3)
 
  
     # Convert the points objects to coordinates (one row = one point[x,y])
@@ -100,79 +100,7 @@ def getCorrespondences(im1, im2):
     im2_points = np.array(im2_points)
     return im1_points, im2_points
 
-# Write a function, estimateTransform to determine the transform between ‘im1_points’
-# to ‘im2_points’, i.e., to determine the transform between ‘im1’ to ‘im2’. Your function should
-# have the form:
-# A=estimateTransform( im1_points, im2_points );
 
-# In class, we saw how to estimate a 3 ×3 homography
-# A =
-# a b c
-# d e f
-# g h i
-#
-# by setting
-# q = [a b c d e f g h i]T
-# and creating a design matrix P and a vector r. We also saw how to estimate q by using homo-
-# geneous least squares, with singular value decomposition (SVD). The function estimateTransform
-# should create P and r according to the direct linear transform (DLT) approach we saw in class.
-# Note: you will get full credit for using a for loop to create P. However, there are ways to create
-# both P without using a for loop. While r is relatively easy to create without a for loop, you
-# will get 1 bonus point for figuring out how to create P without using a for loop! Once you
-# create P, use the SVD-based method we discussed in class to obtain q from P. Then rear-
-# range the values of q to get the values in A. For the following set of points in ‘im1=Image1’
-# and‘im2=Image2’:
-# m1_points =
-# 1373 1204
-# 1841 1102
-# 1733 1213
-# 2099 1297
-# 
-# and im2_points =
-# 182 1160
-# 728 1055
-# 617 1172
-# 1001 1247
-#
-# A should be:
-# −0.0004272, −0.0002588, 0.8379231
-# −0.0000576, −0.0007065, 0.5457875
-# −0.0000000, −0.0000003, 0.0001091
-#
-# or
-# 
-# 0.0004272, 0.0002588, −0.8379231
-# 0.0000576, 0.0007065, −0.5457875
-# 0.0000000, 0.0000003, −0.0001091
-#
-# i.e., where the second solution is the negative of the first solution (like scale, the negation
-# of the homography matrix does not impact the result). Use the points and A listed above
-# only to verify your function estimateTransform. However, you must report results for your
-# own set of points, not the ones listed here. Unless you use points obtained using SURF with
-# RANSAC as discussed below, you will not get full credit.
-# Note: In MATLAB, you will get a stubby matrix of size 8 ×9, in which case you should use
-# the regular version of the SVD function. If your matrix were 9 ×9 or taller, then you would use
-# the flag ‘econ’ with the SVD function.
-# In class, we looked at using RANSAC to sample random sets of 4 correspondences and get
-# a near-optimal solution that throws outliers. Write a function estimateTransformRANSAC,
-# that uses RANSAC to estimate the transformation between the points in ‘im1_points’ and
-# ‘im2_points’. In each RANSAC iteration, you will call the function estimateTransform using
-# the minimum number of correspondences k. What should k be for the homogeneous least
-# squares version?
-# An important consideration will be how you choose the error threshold t for RANSAC, and
-# the number of RANSAC iterations Nransac. In your write-up include how you chose the error
-# threshold and the number of RANSAC iterations.
-# Once you perform RANSAC, you will get a list of points Nagree which is a subset of all N points.
-# To balance the solution, you should perform a final homogeneous least squares solve on all
-# Nagree points, by calling estimateTransform on the set Nagree points. Your assignment must
-# demonstrate that you have performed this final solve to receive full points.
-# Note: While we looked at using regular least squares to estimate q using the pseudo-inverse of
-# P, that method is numerically ill-conditioned. Ifyouimplementthepseudo-inversemethod,
-# you will lose all 75 points on this section! You must use SVD to get full points.
-# Apply your function esimateTransformRANSAC to ‘im1_points’ and ‘im2_points’ in your workspace
-# to get the transform matrix, A. You will find that when you use RANSAC, A may be different
-# from the one above. This is fine, as the results from RANSAC + homogeneous least squares
-# depend upon the random samples chosen.
 
 
 def estimateTransformRANSAC(pts1, pts2):
@@ -202,10 +130,10 @@ def estimateTransformRANSAC(pts1, pts2):
         H = estimateTransform(pts1s, pts2s)
 
         ones = np.ones((n, 1))
-        print('pts1 shape:', pts1.shape)
+        # print('pts1 shape:', pts1.shape)
         pts1_h = np.hstack((pts1,ones)) # homogenous coordinates
         # sizes
-        print('pts1_h shape:', pts1_h.shape)
+        # print('pts1_h shape:', pts1_h.shape)
         pts2estim_h = np.dot(H, pts1_h.T).T # transform pts1 to pts2 using the estimated transformation matrix H
         # divide the first two rows by the third row
         # pts2estim = np.divide(pts2estim_h[:2, :], pts2estim_h[2, :]) #euclidean coordinates
@@ -214,14 +142,14 @@ def estimateTransformRANSAC(pts1, pts2):
         pts2estim = np.absolute(pts2estim)
 
         # shapes
-        print('n:', n)
-        print('pts1_h shape:', pts1_h.shape)
-        print('pts2estim_h shape:', pts2estim_h.shape)
-        print('pts2estim shape:', pts2estim.shape)
-        print('pts2 shape:', pts2.shape)
-        # print values
-        print('pts2estim',pts2estim[0])
-        print('pts2',pts2[0])
+        # print('n:', n)
+        # print('pts1_h shape:', pts1_h.shape)
+        # print('pts2estim_h shape:', pts2estim_h.shape)
+        # print('pts2estim shape:', pts2estim.shape)
+        # print('pts2 shape:', pts2.shape)
+        # # print values
+        # print('pts2estim',pts2estim[0])
+        # print('pts2',pts2[0])
         
         d = np.sum((pts2estim - pts2)**2, axis=1) # euclidean distance
 
@@ -260,18 +188,6 @@ def estimateTransform(pts1, pts2):
         A[2*i, :] = [-x, -y, -1, 0, 0, 0, xp*x, xp*y, xp] # fill in the even rows of A
         A[2*i+1, :] = [0, 0, 0, -x, -y, -1, yp*x, yp*y, yp] # fill in the odd rows of A
 
-    """
-    _, _, V = np.linalg.svd(A) 
-    You can use this, but we will be doing the SVD manually
-    using the method: and creating a design matrix P and a vector r. We also saw how to estimate q by 
-    using homo- geneous least squares, with singular value decomposition (SVD). The function estimateTransform
-    should create P and r according to the direct linear transform (DLT) approach we saw in class.
-    Note: you will get full credit for using a for loop to create P. However, there are ways to create
-    both P without using a for loop. While r is relatively easy to create without a for loop, you
-    will get 1 bonus point for figuring out how to create P without using a for loop! Once you
-    create P, use the SVD-based method we discussed in class to obtain q from P. Then rear-
-    range the values of q to get the values in A.
-    """
     
     # create P, which is the design matrix
     P = np.zeros((2*n, 9))
@@ -300,52 +216,141 @@ def estimateTransform(pts1, pts2):
     return A # return the estimated homography matrix
 
 
-# 4: Applying the Homography
-# Use the function transformImage written in Assignment 1 to transform ‘im2’ to
-# match ‘im1’. Call the transformed image ‘im2_transformed’.
-# Be careful! A relates ‘im1’ to ‘im2’. To transform ‘im2’ to ‘im1’, you have to apply the in-
-# verse of A to ‘im2’!
-# For the panorama, you will find it easier to force the corners in the transformed image to
-# be at (1,1) instead of (minx,miny).
-# Also, interp2 may provide NaN (not a number) values. You can reset NaNs to zeros by calling
-# nanlocations = isnan( im2_transformed );
-# im2_transformed( nanlocations )=0;
-# For the example images, ‘im2_transformed’ will be similar the following image:
-# It is quite likely that your ‘im2_transformed’ will not appear exactly like the one shown here,
-# and will have slight differences. Again, this is fine, as your ‘im2_transformed’ depends on the
-# estimate of A calculated using your correspondences. It should not look too different from
-# the image shown here.
-
 # blend two images together using the ramp blur blending method
-def blendImages(im1, im2, blur_threshold=0.5):
-    """Blend two images together using ramp blur blending."""
-    # get the size of the images
-    im1_size = im1.shape
-    im2_size = im2.shape
+# def blendImages(im1, im2, blur_threshold=1):
+#     """Blend two images together using ramp blur blending."""
+#     # get the size of the images
+#     im1_size = im1.shape
+#     im2_size = im2.shape
 
-    # create the ramp blur along the x axis
-    ramp = np.linspace(0, 1, im1_size[1])
-    # make the blur threshold
-    ramp[ramp > blur_threshold] = 1
 
-    # create the ramp blur along the y axis
-    # ramp = np.tile(ramp, (im1_size[0], 1))
 
-    # create the ramp blur along the x axis
-    ramp2 = np.linspace(1, 0, im2_size[1])
-    # make the blur threshold
-    ramp2[ramp2 > blur_threshold] = 1
-    # create the ramp blur along the y axis
-    # ramp2 = np.tile(ramp2, (im2_size[0], 1))
+#     # create the ramp blur
+#     ramp = np.zeros(im1_size)
+#     for i in range(im1_size[0]):
+#         for j in range(im1_size[1]):
+#             if (i < im1_size[0] * blur_threshold):
+#                 ramp[i, j] = 1
+#             else:
+#                 ramp[i, j] = (im1_size[0] - i) / (im1_size[0] * (1 - blur_threshold))
 
-    # blend the images together
-    blended = im1 * ramp + im2 * ramp2
+#     # blend the images together
+#     blended = im1 * ramp + im2 * (1 - ramp)
 
-    return blended
+#     return blended, ramp
+
+# def blendImages(im1, im2, blend_width = 100):
+#     """Blend two images together using a linear ramp."""
+#     h, w = im1.shape[:2]
+
+#     # Create the ramp
+#     ramp = np.zeros(w)
+#     ramp[:blend_width] = np.linspace(0, 1, blend_width)
+#     ramp[-blend_width:] = np.linspace(1, 0, blend_width)
+
+#     # Apply the ramp to im1 and im2
+#     im1_blend = im1 * ramp[np.newaxis, :]
+#     im2_blend = im2 * (1 - ramp)[np.newaxis, :]
+
+#     #write out images of blended images
+#     cv2.imwrite('out_im\im1_blend.jpg', im1_blend)
+#     cv2.imwrite('out_im\im2_blend.jpg', im2_blend)
+
+
+#     # Combine the blended images
+#     panorama = im1_blend + im2_blend
+
+#     return panorama
+
+""" def blendImages(im1, im2, blend_width=100, vertical_blend=False):
+    #Blend two images together using a linear ramp.
+
+    def find_overlap(im1, im2, blend_width):
+        
+
+        result = cv2.matchTemplate(im1, im2, cv2.TM_CCOEFF_NORMED)
+        _,_,_, max_loc = cv2.minMaxLoc(result)
+
+        if vertical_blend:
+            overlap_start = max_loc[1]
+            overlap_end = overlap_start + im2.shape[0]
+        else:
+            overlap_start = max_loc[0]
+            overlap_end = overlap_start + im2.shape[1]
+
+        return overlap_start, overlap_end
+
+    h, w = im1.shape[:2]
+
+    # Find the overlapping region
+    overlap_start, overlap_end = find_overlap(im1, im2, blend_width)
+
+    if vertical_blend:
+        ramp = np.zeros(h)
+        ramp[overlap_start:overlap_end] = np.linspace(0, 1, overlap_end - overlap_start)
+        ramp[:overlap_start] = 0
+        ramp[overlap_end:] = 1
+
+        # Apply the ramp to im1 and im2
+        im1_blend = im1 * (1 - ramp)[:, np.newaxis]
+        im2_blend = im2 * ramp[:, np.newaxis]
+
+    else:
+        ramp = np.zeros(w)
+        ramp[overlap_start:overlap_end] = np.linspace(0, 1, overlap_end - overlap_start)
+        ramp[:overlap_start] = 0
+        ramp[overlap_end:] = 1
+
+        # Apply the ramp to im1 and im2
+        im1_blend = im1 * (1 - ramp)[np.newaxis, :]
+        im2_blend = im2 * ramp[np.newaxis, :]
+
+    # Combine the blended images
+    panorama = im1_blend + im2_blend
+
+    return panorama """
+
+def blendImages(im1, im2):
+    # Load two images
+    img1 = im1
+    img2 = im2
+
+    #shape of the image1
+    print("im1:",img1.shape)
+
+    # Create a ramp function
+    ramp = np.linspace(0, 1, img1.shape[1]).reshape((1, img1.shape[1], 1))
+    ramp_reshaped = ramp.reshape(1, img1.shape[1], 1)
+
+    #print ramp and ramp_reshaped
+    print("ramp:",ramp.shape)
+    print("ramp_reshaped:",ramp_reshaped.shape)
+
+    # Create an array of ones with the same shape as img1
+    ones = np.ones_like(img1)
+
+    
+    # Create the inverse ramp function
+    inv_ramp = np.flip(ramp_reshaped, axis=1)
+
+    # Multiply the first image by the ramp function
+    img1 = cv2.multiply(img1, ramp_reshaped)
+
+    # Multiply the second image by the inverse ramp function
+    img2 = cv2.multiply(img2, inv_ramp)
+
+    # Add the two images together
+    result = cv2.add(img1, img2)
+
+    # Display the result
+    cv2.imshow('Result', result)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
 
 def main():
-    im1 = 'images\Image1.jpg'
-    im2 = 'images\Image2.jpg'
+    im1 = 'images\Room1.jpg'
+    im2 = 'images\Room2.jpg'
 
     test1 = np.array([[1373, 1204], [1841, 1102], [1733, 1213], [2099, 1297]])
     # print(test1.shape)
@@ -362,10 +367,52 @@ def main():
     Hv2inv = np.linalg.inv(Hv2)
     print("Hv2inv",Hv2inv)
 
-    im3 = transformImage(image2, Hv2inv,"homography")
+    im2_transformed = transformImage(image2, Hv2inv,"homography", 'out_im\im2_transformed.png')
+    #print shape of im2_transformed
+    print("im2_transformed",im2_transformed.shape)
 
-    im4 = blendImages(image1, im3)
-    cv2.imwrite('panorama.jpg', im4)
+
+    # Expand the first image
+    im1_expanded = np.zeros_like(im2_transformed)
+    #print shaoe of im1_expanded
+    print("im1_expanded",im1_expanded.shape)
+
+    im1_expanded[:image1.shape[0], :image1.shape[1]] = image1
+    #instead of being on the top left, the image is on the bottom left
+    #Realignment for set 1: -608
+    #Realignment for set 2: -557
+    #Realignment for set 3: -320
+    im1_expanded = np.roll(im1_expanded, int(-image1.shape[0]-557), axis=0)
+
+    blend_width = 100
+
+    panorama = blendImages(im1_expanded, im2_transformed)
+    # Blending the images with 0.3 and 0.7
+    # panorama = cv2.addWeighted(im1_expanded, 0.3, im2_transformed, 0.7, 0)
+
+    print("panorama",panorama.shape)
+
+    cv2.imwrite('out_im\panoramav4.jpg', panorama)
+
+    
+    
+
+    # # Create the ramp
+    # h, w = im1_expanded.shape[:2]
+    # ramp = np.zeros(w)
+    # ramp[:blend_width] = np.linspace(0, 1, blend_width)
+    # ramp[-blend_width:] = np.linspace(1, 0, blend_width)
+
+    # Save the intermediate and final images
+    # cv2.imwrite('out_im\im2_transformed.png', im2_transformed)
+    cv2.imwrite('out_im\im1_expanded.png', im1_expanded)
+    # print("shape of exp*ramp", (im1_expanded * ramp[np.newaxis, :]).shape)
+
+    # cv2.imwrite('out_im\im1_blend.png', im1_expanded * ramp[np.newaxis, :])
+    # #print hello
+    # print("hello")
+    # cv2.imwrite('out_im\im2_blend.png', im2_transformed * (1 - ramp)[np.newaxis, :])
+    cv2.imwrite('out_im\panorama.png', panorama)
 
 if __name__ == '__main__':
     main()

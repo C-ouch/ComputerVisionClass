@@ -1,9 +1,9 @@
 import cv2
 import numpy as np
 
-# Load the input image
-color = cv2.imread("Image1.png", cv2.IMREAD_COLOR)
-I = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
+# # Load the input image
+# color = cv2.imread("Image1.png", cv2.IMREAD_COLOR)
+# I = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
 
 
 # Define the homography matrix A
@@ -45,8 +45,8 @@ def transform_matrix(tx=None, ty=None, alpha=None, sx=None, sy=None, shear_facto
     else:
         Sh = np.eye(3)
         
-    # Compose the transformation matrix
-    A = np.dot(np.dot(np.dot(T, Sh), np.dot(S, R)), np.linalg.inv(T))
+    # Compose the transformation matrix by first translating, rotating, scaling, and then shearing
+    A = np.dot(T, np.dot(R, np.dot(S, Sh)))
     
     return A
 
@@ -54,7 +54,7 @@ def transformImage(I, A, transform_type, output_image_name):
     print(transform_type)
     
     # Check if the transform type is valid
-    if transform_type == 'scaling'or'translation'or'rotation'or'reflection'or'homography'or'affine':
+    if transform_type in ('scaling', 'translation', 'rotation', 'reflection', 'homography', 'affine'):
 
         # Get the dimensions of the input image
         H, W = I.shape[:2]
@@ -150,7 +150,7 @@ def transformImage(I, A, transform_type, output_image_name):
 
 def main():
     # Read the input image
-    color = cv2.imread("Image3.png", cv2.IMREAD_COLOR)
+    color = cv2.imread("Image1.png", cv2.IMREAD_COLOR)
 
     input_image = cv2.cvtColor(color, cv2.COLOR_BGR2GRAY)
 
@@ -163,9 +163,9 @@ def main():
         input_image = cv2.resize(input_image, (1920, 1080))
     cv2.imwrite("Q2.1.jpg", input_image)
 
-    # Transformation matrix for reflection along the y-axis
-    t_matrix = transform_matrix(sx = -1)
-
+    # Transformation matrix for reflection in the y direction
+    t_matrix = transform_matrix(sy = -1)
+  
     # Using transformImage function to transform the image to reflect along the y-axis
     transformImage(input_image, t_matrix, 'reflection', "Q2.2")
 
