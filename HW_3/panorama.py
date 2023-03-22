@@ -4,7 +4,7 @@ from transformOriginal import transformImage # From the previous homework
 import cv2
 import numpy as np
 
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 
 # HELP BLOCK to explain the code
 # There are several functions defined
@@ -90,9 +90,9 @@ def getCorrespondences(im1, im2):
     print( "Total Keypoints for 1: {}".format(len(kp1)) )
     print( "Total Keypoints for 2: {}".format(len(kp2)) )
 
-    cv2.imwrite("out_im\img.jpg", im1)
-    cv2.imwrite("out_im\img2.jpg", im2)
-    cv2.imwrite("out_im\Matches.jpg", img3)
+    # cv2.imwrite("out_im\img.jpg", im1) #uncomment to see corresponding keypoints
+    # cv2.imwrite("out_im\img2.jpg", im2)
+    # cv2.imwrite("out_im\Matches.jpg", img3)
 
  
     # Convert the points objects to coordinates (one row = one point[x,y])
@@ -100,23 +100,20 @@ def getCorrespondences(im1, im2):
     im2_points = np.array(im2_points)
     return im1_points, im2_points
 
-
-
-
 def estimateTransformRANSAC(pts1, pts2):
     """Estimate the transform between two sets of points using RANSAC"""
-    # RANSAC is Ra
-    Nransac = 1000
-    th = 5
-    k = 4
-    n = pts1.shape[0]
-    nkeepmax = 0
+    # RANSAC stands for Random Sample Consensus
+    Nransac = 1000 # number of RANSAC iterations
+    th = 5 # threshold for the distance between a point and the estimated line
+    k = 4 # number of points to fit a model
+    n = pts1.shape[0] # number of points
+    nkeepmax = 0 # number of points that agree with the model
 
     #print size of pts1 and pts2
     print('pts1 shape:', pts1.shape)
     print('pts2 shape:', pts2.shape)
 
-    if n < k:
+    if n < k: # if there are less points than the minimum required
         print('Error: Input arrays must have at least {} data points'.format(k))
         return None
 
@@ -129,30 +126,16 @@ def estimateTransformRANSAC(pts1, pts2):
 
         H = estimateTransform(pts1s, pts2s)
 
-        ones = np.ones((n, 1))
-        # print('pts1 shape:', pts1.shape)
+        ones = np.ones((n, 1)) # column of ones
         pts1_h = np.hstack((pts1,ones)) # homogenous coordinates
-        # sizes
-        # print('pts1_h shape:', pts1_h.shape)
+
         pts2estim_h = np.dot(H, pts1_h.T).T # transform pts1 to pts2 using the estimated transformation matrix H
         # divide the first two rows by the third row
-        # pts2estim = np.divide(pts2estim_h[:2, :], pts2estim_h[2, :]) #euclidean coordinates
         pts2estim = pts2estim_h[:, :2] / pts2estim_h[:, 2:]
         # make all pts2estim values positive
         pts2estim = np.absolute(pts2estim)
-
-        # shapes
-        # print('n:', n)
-        # print('pts1_h shape:', pts1_h.shape)
-        # print('pts2estim_h shape:', pts2estim_h.shape)
-        # print('pts2estim shape:', pts2estim.shape)
-        # print('pts2 shape:', pts2.shape)
-        # # print values
-        # print('pts2estim',pts2estim[0])
-        # print('pts2',pts2[0])
         
         d = np.sum((pts2estim - pts2)**2, axis=1) # euclidean distance
-        # with the square root
         d = np.sqrt(d)
 
         keep = np.where(d < th)[0]
@@ -217,142 +200,6 @@ def estimateTransform(pts1, pts2):
 
     return A # return the estimated homography matrix
 
-
-# blend two images together using the ramp blur blending method
-# def blendImages(im1, im2, blur_threshold=1):
-#     """Blend two images together using ramp blur blending."""
-#     # get the size of the images
-#     im1_size = im1.shape
-#     im2_size = im2.shape
-
-
-
-#     # create the ramp blur
-#     ramp = np.zeros(im1_size)
-#     for i in range(im1_size[0]):
-#         for j in range(im1_size[1]):
-#             if (i < im1_size[0] * blur_threshold):
-#                 ramp[i, j] = 1
-#             else:
-#                 ramp[i, j] = (im1_size[0] - i) / (im1_size[0] * (1 - blur_threshold))
-
-#     # blend the images together
-#     blended = im1 * ramp + im2 * (1 - ramp)
-
-#     return blended, ramp
-
-# def blendImages(im1, im2, blend_width = 100):
-#     """Blend two images together using a linear ramp."""
-#     h, w = im1.shape[:2]
-
-#     # Create the ramp
-#     ramp = np.zeros(w)
-#     ramp[:blend_width] = np.linspace(0, 1, blend_width)
-#     ramp[-blend_width:] = np.linspace(1, 0, blend_width)
-
-#     # Apply the ramp to im1 and im2
-#     im1_blend = im1 * ramp[np.newaxis, :]
-#     im2_blend = im2 * (1 - ramp)[np.newaxis, :]
-
-#     #write out images of blended images
-#     cv2.imwrite('out_im\im1_blend.jpg', im1_blend)
-#     cv2.imwrite('out_im\im2_blend.jpg', im2_blend)
-
-
-#     # Combine the blended images
-#     panorama = im1_blend + im2_blend
-
-#     return panorama
-
-""" def blendImages(im1, im2, blend_width=100, vertical_blend=False):
-    #Blend two images together using a linear ramp.
-
-    def find_overlap(im1, im2, blend_width):
-        
-
-        result = cv2.matchTemplate(im1, im2, cv2.TM_CCOEFF_NORMED)
-        _,_,_, max_loc = cv2.minMaxLoc(result)
-
-        if vertical_blend:
-            overlap_start = max_loc[1]
-            overlap_end = overlap_start + im2.shape[0]
-        else:
-            overlap_start = max_loc[0]
-            overlap_end = overlap_start + im2.shape[1]
-
-        return overlap_start, overlap_end
-
-    h, w = im1.shape[:2]
-
-    # Find the overlapping region
-    overlap_start, overlap_end = find_overlap(im1, im2, blend_width)
-
-    if vertical_blend:
-        ramp = np.zeros(h)
-        ramp[overlap_start:overlap_end] = np.linspace(0, 1, overlap_end - overlap_start)
-        ramp[:overlap_start] = 0
-        ramp[overlap_end:] = 1
-
-        # Apply the ramp to im1 and im2
-        im1_blend = im1 * (1 - ramp)[:, np.newaxis]
-        im2_blend = im2 * ramp[:, np.newaxis]
-
-    else:
-        ramp = np.zeros(w)
-        ramp[overlap_start:overlap_end] = np.linspace(0, 1, overlap_end - overlap_start)
-        ramp[:overlap_start] = 0
-        ramp[overlap_end:] = 1
-
-        # Apply the ramp to im1 and im2
-        im1_blend = im1 * (1 - ramp)[np.newaxis, :]
-        im2_blend = im2 * ramp[np.newaxis, :]
-
-    # Combine the blended images
-    panorama = im1_blend + im2_blend
-
-    return panorama """
-
-# def blendImages(im1, im2):
-#     # Load two images
-#     img1 = im1
-#     img2 = im2
-
-#     #shape of the image1
-#     print("im1:",img1.shape)
-
-#     # Create a ramp function
-#     ramp = np.linspace(0, 1, img1.shape[1]).reshape((1, img1.shape[1], 1))
-#     ramp_reshaped = ramp.reshape(1, img1.shape[1], 1)
-
-#     #print ramp and ramp_reshaped
-#     print("ramp:",ramp.shape)
-#     print("ramp_reshaped:",ramp_reshaped.shape)
-
-#     # Create an array of ones with the same shape as img1
-#     ones = np.ones_like(img1)
-
-    
-#     # Create the inverse ramp function
-#     inv_ramp = np.flip(ramp_reshaped, axis=1)
-
-#     # Multiply the first image by the ramp function
-#     # img1 = cv2.multiply(img1, ramp_reshaped)
-
-#     # Multiply the second image by the inverse ramp function
-#     # img2 = cv2.multiply(img2, inv_ramp)
-
-#     # Add the two images together
-#     result = cv2.add(img1, img2)
-
-#     # Display the result
-#     # cv2.imshow('Result', result)
-#     # cv2.waitKey(0)
-#     # cv2.destroyAllWindows()
-
-
-import cv2
-import numpy as np
-
 def blendImages(im1, im2, ramp1_start, ramp2_start, ramp_gradient=0.6):
     """Blend two images together using ramp blending.
     The images might be of different sizes, but the blending region will be the same.
@@ -360,93 +207,68 @@ def blendImages(im1, im2, ramp1_start, ramp2_start, ramp_gradient=0.6):
     ramp2_start: the x value for the start of the ramp in the second image
     The ramp gradient is the slope of the ramp.
     """
-    # Create the ramp
+
+    # Create empty ramp arrays for both images
     ramp1 = np.zeros(im1.shape[1])
     ramp2 = np.zeros(im2.shape[1])
 
-    # ramp1[ramp1_start:] = np.linspace(0, 1, im1.shape[1] - ramp1_start)
-    # reverse the ramp
+    # Create the ramps
     ramp1[:ramp1_start] = np.linspace(1, 0, ramp1_start)
     ramp2[:ramp2_start] = np.linspace(1, 0, ramp2_start)
 
-    ramp = ramp1 + ramp2
-    ramp = ramp / ramp_gradient
+    ramp = ramp1 + ramp2 # Combine the ramps
+    ramp = ramp / ramp_gradient # Normalize the ramp
 
     # Apply the ramp to im1 and im2
-    im1_blend = im1 * ramp[np.newaxis, :]
+    im1_blend = im1 * ramp[np.newaxis, :] # np.newaxis is used to increase the dimension of the existing array by one more dimension
     im2_blend = im2 * (1 - ramp)[np.newaxis, :]
 
     # Combine the blended images
-    # the order of the images is important
-    panorama = im2_blend + im1_blend
+    panorama = im1_blend + im2_blend
+    # write the intermediate files
+    cv2.imwrite('HW_3\out_im\im1_blend.png', im1_blend)
+    cv2.imwrite('HW_3\out_im\im2_blend.png', im2_blend)
 
-    return panorama
+    return panorama # type: np.ndarray
 
 def main():
     im1 = 'HW_3\images\Room1.jpg'
     im2 = 'HW_3\images\Room2.jpg'
 
-    test1 = np.array([[1373, 1204], [1841, 1102], [1733, 1213], [2099, 1297]])
-    # print(test1.shape)
-    test2 = np.array([[182, 1160], [728, 1055], [617, 1172], [1001, 1247]])
-
-    #H= estimateTransform(test1, test2)
-    #print(H)
-
-    image1, image2 = setupImages(im1, im2)
-    im1_points, im2_points = getCorrespondences(image1, image2)
-
-    Hv2 = estimateTransformRANSAC(im1_points, im2_points)
-    #inverse of Hv2
-    Hv2inv = np.linalg.inv(Hv2)
-    print("Hv2inv",Hv2inv)
-
-    im2_transformed = transformImage(image2, Hv2inv,"homography", 'out_im\im2_transformed.png')
-    #print shape of im2_transformed
-    print("im2_transformed",im2_transformed.shape)
-
-
-    # Expand the first image
-    im1_expanded = np.zeros_like(im2_transformed)
-    #print shaoe of im1_expanded
-    print("im1_expanded",im1_expanded.shape)
-
-    im1_expanded[:image1.shape[0], :image1.shape[1]] = image1
+    image1, image2 = setupImages(im1, im2) # load the images and convert them to grayscale
+    im1_points, im2_points = getCorrespondences(image1, image2) # get the corresponding points
+    Hv2 = estimateTransformRANSAC(im1_points, im2_points) # estimate the homography matrix
+    Hv2inv = np.linalg.inv(Hv2) # calculate inverse of Hv2
+    im2_transformed = transformImage(image2, Hv2inv,"homography", 'out_im\im2_transformed.png') # transform the second image
+    im1_expanded = np.zeros_like(im2_transformed) # Expand the first image to the size of the second image
+    im1_expanded[:image1.shape[0], :image1.shape[1]] = image1 # copy the first image into the expanded image
     #instead of being on the top left, the image is on the bottom left
-    #Realignment for set 1: -608
-    #Realignment for set 2: -557
-    #Realignment for set 3: -320
+    #Realignment for set 1 (Image): -608
+    #Realignment for set 2 (Room): -557
+    #Realignment for set 3 (Bathroom): -320
     im1_expanded = np.roll(im1_expanded, int(-image1.shape[0]-557), axis=0)
 
-    blend_width = 100
-
-    panorama = blendImages(im1_expanded, im2_transformed, 2780, 2500, 0.95)
-    # im1 and im2 swapped
-    # panorama = blendImages(im2_transformed, im1_expanded, 500, 4500, 0.95)
-    # Blending the images with 0.3 and 0.7
-    # panorama = cv2.addWeighted(im1_expanded, 0.3, im2_transformed, 0.7, 0)
-
-    # print("panorama",panorama.shape)
-
-    cv2.imwrite('HW_3\out_im\panoramav6.jpg', panorama)
-
-
-    # # Create the ramp
-    # h, w = im1_expanded.shape[:2]
-    # ramp = np.zeros(w)
-    # ramp[:blend_width] = np.linspace(0, 1, blend_width)
-    # ramp[-blend_width:] = np.linspace(1, 0, blend_width)
+    # take the input from the user for the start of both ramps
+    # manually locate two points in image 1 using ginput from matplotlib
+    plt.imshow(im1_expanded)
+    x_1 = plt.ginput(1, timeout=0)
+    ramp1_start = int(x_1[0][0])
+    plt.imshow(im2_transformed)
+    x_2 = plt.ginput(1, timeout=0)
+    #print it out
+    print("x_1",x_1)
+    print("x_2",x_2)
+    ramp2_start = int(x_2[0][0])
+    ramp_gradient = 0.99
+    # panorama = blendImages(im1_expanded, im2_transformed, 2780, 2500, 0.99)
+    panorama = blendImages(im1_expanded, im2_transformed, ramp1_start, ramp2_start, ramp_gradient)
 
     # Save the intermediate and final images
-    # cv2.imwrite('out_im\im2_transformed.png', im2_transformed)
-    cv2.imwrite('out_im\im1_expanded.png', im1_expanded)
-    # print("shape of exp*ramp", (im1_expanded * ramp[np.newaxis, :]).shape)
+ 
+    cv2.imwrite('HW_3\out_im\im1_expanded.jpg', im1_expanded)
+    cv2.imwrite('HW_3\out_im\im2_transformed.jpg', im2_transformed)
+    cv2.imwrite('HW_3\out_im\panorama_set1.jpg', panorama)
 
-    # cv2.imwrite('out_im\im1_blend.png', im1_expanded * ramp[np.newaxis, :])
-    # #print hello
-    # print("hello")
-    # cv2.imwrite('out_im\im2_blend.png', im2_transformed * (1 - ramp)[np.newaxis, :])
-    # cv2.imwrite('out_im\panorama.png', panorama)
 
 if __name__ == '__main__':
     main()
