@@ -152,6 +152,8 @@ def estimateTransformRANSAC(pts1, pts2):
         # print('pts2',pts2[0])
         
         d = np.sum((pts2estim - pts2)**2, axis=1) # euclidean distance
+        # with the square root
+        d = np.sqrt(d)
 
         keep = np.where(d < th)[0]
         nkeep = len(keep)
@@ -310,47 +312,79 @@ def estimateTransform(pts1, pts2):
 
     return panorama """
 
-def blendImages(im1, im2):
-    # Load two images
-    img1 = im1
-    img2 = im2
+# def blendImages(im1, im2):
+#     # Load two images
+#     img1 = im1
+#     img2 = im2
 
-    #shape of the image1
-    print("im1:",img1.shape)
+#     #shape of the image1
+#     print("im1:",img1.shape)
 
-    # Create a ramp function
-    ramp = np.linspace(0, 1, img1.shape[1]).reshape((1, img1.shape[1], 1))
-    ramp_reshaped = ramp.reshape(1, img1.shape[1], 1)
+#     # Create a ramp function
+#     ramp = np.linspace(0, 1, img1.shape[1]).reshape((1, img1.shape[1], 1))
+#     ramp_reshaped = ramp.reshape(1, img1.shape[1], 1)
 
-    #print ramp and ramp_reshaped
-    print("ramp:",ramp.shape)
-    print("ramp_reshaped:",ramp_reshaped.shape)
+#     #print ramp and ramp_reshaped
+#     print("ramp:",ramp.shape)
+#     print("ramp_reshaped:",ramp_reshaped.shape)
 
-    # Create an array of ones with the same shape as img1
-    ones = np.ones_like(img1)
+#     # Create an array of ones with the same shape as img1
+#     ones = np.ones_like(img1)
 
     
-    # Create the inverse ramp function
-    inv_ramp = np.flip(ramp_reshaped, axis=1)
+#     # Create the inverse ramp function
+#     inv_ramp = np.flip(ramp_reshaped, axis=1)
 
-    # Multiply the first image by the ramp function
-    img1 = cv2.multiply(img1, ramp_reshaped)
+#     # Multiply the first image by the ramp function
+#     # img1 = cv2.multiply(img1, ramp_reshaped)
 
-    # Multiply the second image by the inverse ramp function
-    img2 = cv2.multiply(img2, inv_ramp)
+#     # Multiply the second image by the inverse ramp function
+#     # img2 = cv2.multiply(img2, inv_ramp)
 
-    # Add the two images together
-    result = cv2.add(img1, img2)
+#     # Add the two images together
+#     result = cv2.add(img1, img2)
 
-    # Display the result
-    cv2.imshow('Result', result)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+#     # Display the result
+#     # cv2.imshow('Result', result)
+#     # cv2.waitKey(0)
+#     # cv2.destroyAllWindows()
 
+
+import cv2
+import numpy as np
+
+def blendImages(im1, im2, ramp1_start, ramp2_start, ramp_gradient=0.6):
+    """Blend two images together using ramp blending.
+    The images might be of different sizes, but the blending region will be the same.
+    ramp1_start: the x value for the start of the ramp in the first image
+    ramp2_start: the x value for the start of the ramp in the second image
+    The ramp gradient is the slope of the ramp.
+    """
+    # Create the ramp
+    ramp1 = np.zeros(im1.shape[1])
+    ramp2 = np.zeros(im2.shape[1])
+
+    # ramp1[ramp1_start:] = np.linspace(0, 1, im1.shape[1] - ramp1_start)
+    # reverse the ramp
+    ramp1[:ramp1_start] = np.linspace(1, 0, ramp1_start)
+    ramp2[:ramp2_start] = np.linspace(1, 0, ramp2_start)
+
+    ramp = ramp1 + ramp2
+    ramp = ramp / ramp_gradient
+
+    # Apply the ramp to im1 and im2
+    im1_blend = im1 * ramp[np.newaxis, :]
+    im2_blend = im2 * (1 - ramp)[np.newaxis, :]
+
+    # Combine the blended images
+    # the order of the images is important
+    panorama = im2_blend + im1_blend
+
+    return panorama
 
 def main():
-    im1 = 'images\Room1.jpg'
-    im2 = 'images\Room2.jpg'
+    im1 = 'HW_3\images\Room1.jpg'
+    im2 = 'HW_3\images\Room2.jpg'
 
     test1 = np.array([[1373, 1204], [1841, 1102], [1733, 1213], [2099, 1297]])
     # print(test1.shape)
@@ -386,16 +420,16 @@ def main():
 
     blend_width = 100
 
-    panorama = blendImages(im1_expanded, im2_transformed)
+    panorama = blendImages(im1_expanded, im2_transformed, 2780, 2500, 0.95)
+    # im1 and im2 swapped
+    # panorama = blendImages(im2_transformed, im1_expanded, 500, 4500, 0.95)
     # Blending the images with 0.3 and 0.7
     # panorama = cv2.addWeighted(im1_expanded, 0.3, im2_transformed, 0.7, 0)
 
-    print("panorama",panorama.shape)
+    # print("panorama",panorama.shape)
 
-    cv2.imwrite('out_im\panoramav4.jpg', panorama)
+    cv2.imwrite('HW_3\out_im\panoramav6.jpg', panorama)
 
-    
-    
 
     # # Create the ramp
     # h, w = im1_expanded.shape[:2]
@@ -412,7 +446,7 @@ def main():
     # #print hello
     # print("hello")
     # cv2.imwrite('out_im\im2_blend.png', im2_transformed * (1 - ramp)[np.newaxis, :])
-    cv2.imwrite('out_im\panorama.png', panorama)
+    # cv2.imwrite('out_im\panorama.png', panorama)
 
 if __name__ == '__main__':
     main()
