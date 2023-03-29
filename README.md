@@ -7,6 +7,7 @@ We have defined a function that takes in a matrix and does some transform on an 
 
 Homework 3 - Inside of HW_3/out_im/ are the images that were created by the program. Here are the panorama images:
 
+
 Step 1: Get the first image to be expanded as such
 
 ![im1_expanded](https://user-images.githubusercontent.com/67016155/226788645-13fcaf7a-1345-496f-bb64-00a7236adb9e.jpg)
