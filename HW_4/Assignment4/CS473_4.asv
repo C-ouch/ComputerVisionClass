@@ -84,7 +84,7 @@ K12 = (alpha*Fx)+(Xc*Yc);
 K = [((Fx^2)+(alpha^2)+(Xc^2)) K12 Xc; K12 ((Fy^2)+(Yc^2)) Yc; Xc Yc 1]
 
 %% Getting R
-% Step 2: R = lambda * invK * A
+% Step 2.1: R = lambda * invK * A
 lambda = 1 / sqrt(C(3,3));
 
 R1 = lambda * inv(K) * A;
@@ -97,11 +97,37 @@ if(d1 > 0)
     R = R1
 elseif(d2 > 0)
     R = R2
-    lambda = -lambda
+    lambda = 1lab;
 end
-%% Getting t
-% Step 3: t = lambda * invK * b
-t = lambda * inv(K) * b
 
+
+
+%%
+
+
+% % Step 1: Find k
+% k = M(1:3, 1:3) * M(1:3, 1:3)';
+% 
+% % Step 2: Find lambda^2*C
+% lambda = sqrt(k(3,3));
+% C = inv(k/lambda^2);
+% 
+% % Step 3: Find R
+% A = k(1:2, 1:2);
+% R = zeros(3);
+% R(1:2, 1:2) = A;
+% R(3,3) = det(R) / (A(1,1)*A(2,2));
+% 
+% % Step 4: Check sign of R
+% if R(3,3) < 0
+%     R(:, 3) = -R(:, 3);
+% end
+% 
+% % Step 5: Find t
+% t = inv(k) * M(:, 4);
+% t = lambda * t(1:3);
+% 
+% % Assign outputs
+% K = k;
 % t = t(:); % ensure t is a column vector
 end
