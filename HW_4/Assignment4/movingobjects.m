@@ -51,7 +51,7 @@ for img_idx = 1:numel(image_list)
         X_transformed = (R * X_obj_transformed + t);
 
         % Project the transformed mesh onto the image plane using the camera intrinsic matrix
-        X_projected = K_checker2 * X_transformed;
+        X_projected = K_lego * X_transformed;
 
         % Normalize the projected points
         X_projected(1,:) = X_projected(1,:) ./ X_projected(3,:);
