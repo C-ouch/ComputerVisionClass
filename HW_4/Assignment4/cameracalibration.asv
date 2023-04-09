@@ -1,0 +1,15 @@
+% This script stores information obtained from the Camera Calibration tool
+% in MATLAB. The K_checker value stores camera intrinsics from a
+% checkerboard pattern that is on a wall surface.
+
+K_checker = [
+fx s cx;
+0 fy cy;
+0 0 1];
+
+% We can compare to the K value of the lego object:
+K_lego = [
+    12552343.2291599	5174512.31781082	1894.38941669120;
+5174512.31781082	10524037.7552560	1412.07507622200
+1894.38941669120	1412.07507622200	1
+    ]
