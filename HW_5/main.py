@@ -143,7 +143,9 @@ loss_fn = nn.NLLLoss()
 
 
 # Create dataloader to handle batching
-dataloader = DataLoader(dataset, batch_size = batch_size)
+# dataloader = DataLoader(dataset, batch_size = batch_size)
+dataloader = DataLoader(MyDataset(path, split="train"), batch_size = batch_size)
+dataloader_val = DataLoader(MyDataset(path, split="val"), batch_size = batch_size)
 
 def accuracy(predictions, labels):
     with torch.no_grad():
