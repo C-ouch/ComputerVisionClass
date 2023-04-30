@@ -12,9 +12,6 @@ If you check the .png's in the /HW_5 directory, we have several graphs of traini
 
 Interestingly enough we have found that the learning rate of .0001 and with a batch size of 128 converges to 70% accuracy within 10 epochs, so it is better than any other combination of hyperparameters. It took several hours of running the network over all the combinations to get to this conclusion.
 
-# Show some of the images in the root such as "log_acc_lr_0.0001_batch_128.png" from the local file directory
-
-
 ![title][Images/log_acc_lr_0.0001_batch_128.png]
 
 If you want to load the "model.pt" file in the root directory, you basically use this snippet of code:
