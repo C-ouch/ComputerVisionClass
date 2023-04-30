@@ -10,9 +10,10 @@ batch_size_values = [32, 64, 128]
 
 If you check the .png's in the /HW_5 directory, we have several graphs of training accuracy over time for different combinations of hyperparameters.
 
-Interestingly enough we have found that the learning rate of .0001 and with a batch size of 128 converges to 70% accuracy within 10 epochs, so it is better than any other combination of hyperparameters. It took several hours of running the network over all the combinations to get to this conclusion.
+Interestingly enough we have found that the learning rate of .0001 and with a batch size of 128 converges to 70% accuracy within 10 epochs, so it is better than any other combination of hyperparameters. It took several hours of running the network over all the combinations to get to this conclusion. Here it is:
 
-![title][Images/log_acc_lr_0.0001_batch_128.png]
+![log_acc_lr_0 0001_batch_128](https://user-images.githubusercontent.com/67016155/235348778-f3a445ca-6baf-4415-ab9b-4d1080a13b44.png)
+
 
 If you want to load the "model.pt" file in the root directory, you basically use this snippet of code:
 
