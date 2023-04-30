@@ -14,6 +14,12 @@ Interestingly enough we have found that the learning rate of .0001 and with a ba
 
 ![title][Images/log_acc_lr_0.0001_batch_128.png]
 
+# Network Architecture
+
+The network architecture consists of two main parts: convolutional layers and fully connected layers. The convolutional layers use filters to extract features from the input images, and the fully connected layers are used to classify the features extracted from the convolutional layers. Specifically, there are three sets of convolutional layers, each followed by a max pooling layer to reduce the spatial dimensions of the output. The fully connected layers consist of two linear layers with a ReLU activation function and a dropout layer between them. The final layer uses a logarithmic softmax activation function to produce class probabilities.
+
+# How to load the model
+
 If you want to load the "model.pt" file in the root directory, you basically use this snippet of code:
 
 ```python
@@ -25,6 +31,17 @@ if os.path.exists(model_path):
      net.load_state_dict(nstate_dict)
      optimizer.load_state_dict(ostate_dict)
 ```
+
+# How to run training
+Just run the following commands in the root directory:
+
+```python
+python -m pip install requirements.txt
+
+python main.py
+```
+
+It will automatically run the grid search and train the network with all hyperparameter configurations. It will save the last model trained with its hyperparameters to the root directory as "model.pt"
 
 # Visualization of model predictions that were incorrect or correct
 
