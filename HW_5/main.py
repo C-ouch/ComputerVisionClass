@@ -1,6 +1,7 @@
 # CIFAR-10 dataset exploration with machine learning
 # By Alif Jakir and Evan Couchman
 # jakirab@clarkson.edu
+# couchmec@clarkson.edu
 # 4/28/23 
 
 # Build our dataset
@@ -39,6 +40,7 @@ class MyDataset(Dataset):
         #the data needs to be shuffled because the data is in order, so we need to shuffle it
         # zip the images and labels together
         zipped = list(zip(self.images, self.labels))
+        random.seed(0) # set the seed to a constant so that the shuffle is the same every time
         # shuffle the zipped list
         random.shuffle(zipped)
         # unzip the zipped list
@@ -56,6 +58,8 @@ class MyDataset(Dataset):
             self.images = self.images[int(0.8 * len(self.images)) :]
             self.labels = self.labels[int(0.8 * len(self.labels)) :]
 
+    
+
     def __len__(self): # return the length of the dataset
         return len(self.images) # return the length of the dataset
         
@@ -67,6 +71,7 @@ class MyDataset(Dataset):
         # create first image
         # print shape of image and axes
         
+
         image = np.transpose(image, axes=(2,0,1)) # transpose the image by swapping the axes
         image = image.astype(np.float32) # convert the image to a float32
 
@@ -77,6 +82,8 @@ class MyDataset(Dataset):
         last_dot_index = label.rfind(".")
         label = int(label[last_dot_index-1])
         # print("label: ", label)
+
+       
 
         return (image, label) # return the image and the label
 
@@ -89,8 +96,9 @@ def normalize(image):
     return image
 
 def unnormalize(image):
-    image = (image + 1) # [0, 1]
-    image = (image - 0.5) / 0.5 # [-1, 1]
+    image = (image + 1) # [0, 2]
+    image = image /2 # [0, 1]
+    image = image * 255 # [0, 255]
     return image
 
 import torch.nn as nn
@@ -99,6 +107,46 @@ import torch
 class MyNet(nn.Module):
     def __init__(self):
         super(MyNet, self).__init__()
+
+        """ # conv > relu > max > conv > relu > max > fc (10) > softmax
+        # input: (32, 32, 3)
+        self.conv1 = nn.Conv2d(
+            in_channels = 3, 
+            out_channels = 32,
+            kernel_size = 5,
+        ) # output: (30, 30, 32)
+        self.maxpool1 = nn.MaxPool2d(
+            kernel_size = 2,
+        )
+        self.conv2 = nn.Conv2d(
+            in_channels = 32,
+            out_channels = 64,
+            kernel_size = 3,
+        ) # output: (15, 15, 64)
+        self.maxpool2 = nn.MaxPool2d(
+            kernel_size = 2,
+        ) # output: (6,6, 64)
+        self.linear= nn.Linear(
+            in_features = 6*6*64,
+            out_features = 10,
+        )
+        self.softmax = nn.LogSoftmax(
+            dim = None,
+        )
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv1(x)
+        x = self.relu(x)
+        x = self.maxpool1(x)
+        x = self.conv2(x)
+        x = self.relu(x)
+        x = self.maxpool2(x)
+        # output: (6,6, 64)
+        x = torch.flatten(x, 1)
+        x = self.linear(x)
+        x = self.softmax(x)
+        return x """
 
         self.conv_layers = nn.Sequential(
             nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1),
@@ -143,7 +191,7 @@ class MyNet(nn.Module):
 
 from torch.optim import Adam
 
-path = "HW_5\data\data.pkl" # dataset path
+path = "HW5\data\data.pkl" # dataset path
 
 dataset = MyDataset(path) # create the dataset
 image, label = dataset[0]
@@ -152,10 +200,10 @@ net = MyNet()
 
 # Hyperparameters
 
-lr_values = [0.01, 0.001, 0.0001]
-batch_size_values = [32, 64, 128]
-# lr = 0.01 # learning rate
-# batch_size = 128 # batch size
+# lr_values = [0.01, 0.001, 0.0001]
+# batch_size_values = [32, 64, 128]
+lr = 0.001 # learning rate
+batch_size = 64 # batch size
 num_epochs = 10 # number of epochs
 model_path = "model.pt"
 
@@ -194,7 +242,8 @@ def train(epoch):
         log_train.append(loss.item())
 
         # print the loss
-        print("Epoch: {}, Loss: {}".format(epoch, loss.item()))
+        if ii % 100 == 0:
+            print("Epoch: {}, Loss: {}".format(epoch, loss.item()))
 
         # calculate the accuracy
         # acc = accuracy(predictions, labels)
@@ -284,42 +333,44 @@ cur_epoch = 0
 
 
 
-for lr in lr_values:
-    for batch_size in batch_size_values:
-        # create dataloaders with the current hyperparameters
-        dataloader = DataLoader(MyDataset(path, split="train"), batch_size=batch_size)
-        dataloader_val = DataLoader(MyDataset(path, split="val"), batch_size=batch_size)
+# for lr in lr_values:
+#     for batch_size in batch_size_values:
+# create dataloaders with the current hyperparameters
+dataloader = DataLoader(MyDataset(path, split="train"), batch_size=batch_size)
+dataloader_val = DataLoader(MyDataset(path, split="val"), batch_size=batch_size)
 
-        # create the optimizer with the current learning rate
-        optimizer = Adam(params=net.parameters(), lr=lr)
 
-        # train and validate the model with the current hyperparameters
-        for epoch in range(num_epochs):
-            train(epoch)
-            validate(epoch)
 
-            print("Saving the model we have... beep boop")
-            torch.save(
-                [
-                    net.state_dict(), optimizer.state_dict(),
-                    log_train, log_val, log_acc,
-                    epoch + 1,
-                ],
-                model_path
-            )
+# create the optimizer with the current learning rate
+optimizer = Adam(params=net.parameters(), lr=lr)
 
-        # Make some plots from our logs
-        plt.clf()
-        plt.plot(log_train, label="train")
-        plt.xlabel("Iterations")
-        plt.ylabel("Loss")
-        plt.yscale("log")
-        plt.savefig(f"log_train_lr_{lr}_batch_{batch_size}.png")
+# train and validate the model with the current hyperparameters
+for epoch in range(num_epochs):
+    train(epoch)
+    validate(epoch)
 
-        plt.clf()
-        plt.plot(log_acc)
-        plt.xlabel("Epoch")
-        plt.ylabel("Accuracy")
-        plt.savefig(f"log_acc_lr_{lr}_batch_{batch_size}.png")
+    print("Saving the model we have... beep boop")
+    torch.save(
+        [
+            net.state_dict(), optimizer.state_dict(),
+            log_train, log_val, log_acc,
+            epoch + 1,
+        ],
+        model_path
+    )
+
+# Make some plots from our logs
+plt.clf()
+plt.plot(log_train, label="train")
+plt.xlabel("Iterations")
+plt.ylabel("Loss")
+plt.yscale("log")
+plt.savefig(f"Images/log_train_lr_{lr}_batch_{batch_size}.png")
+
+plt.clf()
+plt.plot(log_acc)
+plt.xlabel("Epoch")
+plt.ylabel("Accuracy")
+plt.savefig(f"Images/log_acc_lr_{lr}_batch_{batch_size}.png")
 
 
