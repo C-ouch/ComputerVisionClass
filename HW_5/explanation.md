@@ -57,5 +57,24 @@ python main.py
 
 It will automatically run the grid search and train the network with all hyperparameter configurations. It will save the last model trained with its hyperparameters to the root directory as "model.pt"
 
-# Visualization of model predictions that were incorrect or correct
 
+# Visualization of model predictions that were incorrect or correct
+Looking at the models training through its predictions shows what features/positions it recognized certain groups to be. For instance here are some predictions it had at Epoch 0:
+
+### Correctly Labeled as Frogs:  
+![0_7_6_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_7_6_6.png)
+![0_17_6_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_17_6_6.png)
+![0_14_6_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_14_6_6.png)
+![0_43_6_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_43_6_6.png)
+  
+  
+### Incorrectly Labeled as Frogs:  
+![0_18_3_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_18_3_6.png)
+![0_44_2_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_44_2_6.png)
+![0_20_4_6.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_20_4_6.png)
+
+As stated, the top set of images are correctly labeled as frogs and below them are falsely labeled as the same. Similar incorrect labeling can be found through Epoch 0's predictions. This is because the model pattern matched the position of the images of frogs which tended to be them facing to the left and right causing mislabeling to occur. In the model's next epoch iterization the 2 images of deer are correctly labeled and held that throught the rest of training, while the image of the cat got labeled close to correct as a dog. In some images the training actually caused images that were once labeled correctly to change. Such as the flamgo below:
+
+![0_62_2_1.png](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/predictions/0_62_2_1.png)
+
+This image initially gets labelled as an automobile in Epoch 0. Then on the next epoch (Epoch 1) the model correctly labels it a bird. This model then goes through numerous labels changes switching from deer for 2 epochs back to bird and back to deer until landing on a constant label of, unexpectingly, a horse on epoch 6. Which the flamingo stayed incorrectly labeled when training finished.
