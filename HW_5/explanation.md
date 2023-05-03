@@ -12,18 +12,21 @@ This unfortunately resulted in not testing multiple each hp individually but con
 
 ![log_acc_lr_0 0001_batch_128](https://user-images.githubusercontent.com/67016155/235348778-f3a445ca-6baf-4415-ab9b-4d1080a13b44.png)
 
-If you check the .png's in the /HW_5/Images_GS directory, we have several graphs of training accuracy over time and ones for loss for different combinations of hyperparameters during grid search.
+If you check the .png's in the /HW_5/Images_GS directory, we have several graphs of accuracy over time and ones for training loss for different combinations of hyperparameters during grid search.
 
 After that we used a brute forced method only testing 4 of the cominations from the 6 hps and 1 extra outside those learning rates: 
 
-Combinations: 
+Hyperparameter Combinations: 
 1. learning rate: 0.1 | Batch Size: 64
-2. learning rate: 0.01 | Batch Size: 64
-3. learning rate: 0.001 | Batch Size: 64
-4. learning rate: 0.0001 | Batch Size: 64
-5. learning rate: 0.0001 | Batch Size: 128
+2. learning rate: 0.01 | Batch Size: 32 (First hps for training using Grid search so accuracy and loss is still valid)
+3. learning rate: 0.01 | Batch Size: 64
+4. learning rate: 0.001 | Batch Size: 64
+5. learning rate: 0.0001 | Batch Size: 64
+6. learning rate: 0.0001 | Batch Size: 128
 
- These models .png's can be found in the /HW_5/Images directory, with the graphs for training accuracy over time and loss.
+These models .png's can be found in the /HW_5/Images directory, with the graphs for accuracy over time and training loss. After brute forcing different values its shown that a learning rate of 0.1 caused the training to be come static very early making it invalidated and that the combinaton (learning rate: 0.001, batch size: 64) caused the accuracy after epoch 3 to decline after reaching its peak. The best hyperparameter combination was (learning rate: 0.001, batch size: 64) which resulted in an final acuracy of 81.22%. This models accuracy and loss graph can be seen below:
+ 
+ ![log_acc_lr_0 001_batch_64](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/Images/log_acc_lr_0.001_batch_64.png) ![log_loss_lr_0 001_batch_64](https://github.com/Caerii/CS473-ComputerVisionClass/blob/main/HW_5/Images/log_train_lr_0.001_batch_64.png)
 
 # Network Architecture
 
