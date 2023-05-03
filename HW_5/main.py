@@ -3,6 +3,7 @@
 # jakirab@clarkson.edu
 # couchmec@clarkson.edu
 # 4/28/23 
+# Github: https://github.com/Caerii/CS473-ComputerVisionClass/tree/main/HW_5
 
 # Build our dataset
 # For this assignment, you will train a performant CNN-based classifier on CIFAR-10 by performing a grid search over two variables that impact network performance. Some examples of variables you can play with are:
